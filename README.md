@@ -54,7 +54,7 @@ source AI_HEAD_ENV.sh
 
 AI-HEAD.py
 ```
-**Additionally, we have launched a command line based version of AI-HEAD:**
+**Additionally, we have launched AI-HEAD in commandline version:**
 ```
 source AI_HEAD_ENV.sh
 
