@@ -46,8 +46,21 @@ export PATH=(where you install AI-HEAD):$PATH
 ```
 Usage:
 ---
+**AI-HEAD provides a very friendly graphical interface. Once the operating environment is configured, the user could open the graphical interface and create the project anywhere:**
+
+**Examples:**
 ```
 source AI_HEAD_ENV.sh
 
 AI-HEAD.py
 ```
+**Additionally, we have launched a command line based version of AI-HEAD:**
+```
+source AI_HEAD_ENV.sh
+
+AI-HEAD_command.py --config config_files.txt
+```
+**When the AI-HEAD program is running, the configuration file corresponding to the command line version of the module is also generated.**
+
+Both of them could get everything done, so just choose the version you like.
+
