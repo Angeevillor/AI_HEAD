@@ -46,7 +46,9 @@ export PATH=(where you install AI-HEAD):$PATH
 ```
 Usage:
 ---
-**AI-HEAD provides a very friendly graphical interface. Once the operating environment is configured, the user could open the graphical interface and create the project anywhere:**
+AI-HEAD provides a very friendly graphical interface. Once the operating environment is configured, you could open the interface
+
+and create new projects anywhere:
 
 **Examples:**
 ```
