@@ -33,9 +33,10 @@ Environments:
 cd (where you install AI-HEAD)
 
 python create_env_file.py
-
-Then you will get a file called "AI_HEAD_ENV.sh"
 ```
+**Then you will get a file called "AI_HEAD_ENV.sh"**
+
+
 **2.Or you could make the environment file by yourself:**
 ```
 export AI_HEAD_PATH=(where you install AI-HEAD)
