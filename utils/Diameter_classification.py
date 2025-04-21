@@ -80,10 +80,18 @@ def reclassication(diameter_file,save_path,n_class=8):
           pass
 
 
-def get_avg_pw(tube_path,tube_length,pad,step,save_path):
+def get_avg_pw(tube_path,tube_length,pad,step,gpu_id,save_path):
 
     tube_list=sorted(glob.glob(f"{tube_path}/*.mrc"))
     sum_pw=torch.zeros((pad,pad))
+
+    if gpu_id!=None:
+
+        calculate_device=f"cuda:{gpu_id}"
+    
+    else:
+
+        calculate_device="cpu"
     
 
     for j in range(len(tube_list)):
@@ -118,7 +126,7 @@ def get_avg_pw(tube_path,tube_length,pad,step,save_path):
 
             for m in range(len(split_stack)):
 
-                pw=abs(torch.fft.fftn(split_stack[m].cuda(),dim=(-2,-1)))**2
+                pw=abs(torch.fft.fftn(split_stack[m].to(calculate_device),dim=(-2,-1)))**2
                 avg_pw=torch.fft.fftshift(torch.log(pw),dim=(-2,-1)).sum(dim=0)
                 sum_pw+=avg_pw.cpu()
         else:
