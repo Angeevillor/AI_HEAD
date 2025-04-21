@@ -395,6 +395,17 @@ if __name__ =="__main__":
 
             else:
                 os.mkdir(ctfm_path)
+            
+            if config_dic["GPU"]!="None":
+
+
+                GPU_id=int(config_dic["GPU"])
+        
+                calculate_device=f"cuda:{GPU_id}"
+            
+            else:
+
+                calculate_device="cpu"
 
             df=starfile.read(config_dic["Star_file"])
 
@@ -418,12 +429,12 @@ if __name__ =="__main__":
             print("Conducting Pre-mutiply CTF to micrographs according the star file...")
             n=10
             for i in range(0,len(img_list),n):
-                img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0)
+                img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
                 img_name_split=img_name[i:i+n]
-                M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False)
+                M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False).to(calculate_device)
                 f_img=torch.fft.rfftn(img_stack,dim=(-2,-1))
                 f_ctfm=f_img*M_ctf
-                ctfm_img=torch.real(torch.fft.irfftn(f_ctfm,dim=(-2,-1)))
+                ctfm_img=torch.real(torch.fft.irfftn(f_ctfm,dim=(-2,-1))).cpu()
                 for m in range(len(img_name_split)):
                     with mrcfile.new(f"{ctfm_path}/{img_name_split[m]}",overwrite=True) as mrc:
                         mrc.set_data(ctfm_img[m].numpy())
@@ -596,8 +607,18 @@ if __name__ =="__main__":
         pad_size=int(config_dic["Pad_size"])
         cut_step=int(config_dic["Cut_step"])
         save_path=f'./Average_power_spectra/{log_name}'
+
+
+        if config_dic["GPU"]!="None":
+
+            GPU_id=int(config_dic["GPU"])
         
-        Diameter_classification.get_avg_pw(tube_path,tube_length,pad_size,cut_step,save_path)
+        else:
+
+            GPU_id=None
+
+        
+        Diameter_classification.get_avg_pw(tube_path,tube_length,pad_size,cut_step,GPU_id,save_path)
     
 
     elif config_dic["command"]=="Sorting_coordinates":

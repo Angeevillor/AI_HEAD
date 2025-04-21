@@ -173,6 +173,8 @@ def main():
                               help='Set the pixel size of the images',default=1)
     extract_parser.add_argument('Extract_options',
                               help='Just extract tubes?',choices=["Yes","No"],default="No")
+    extract_parser.add_argument('--GPU',
+                              help='Please set the device id of GPU if you want to use gpu-acceleration during CTF-mutiply, only single GPU supported.')
     extract_parser.add_argument('Log File name',
                               help='Please enter the Log File name')
 
@@ -214,6 +216,8 @@ def main():
                               help='Please set the size of the power spectrum',default=4096)
     Avg_pw_parser.add_argument('Cut_step',
                               help='Please set the step to cut the tubes (10 percent of the width size is usually used)')
+    Avg_pw_parser.add_argument('--GPU',
+                              help='Please set the device id of GPU if you want to use gpu-acceleration during power speactrum averaging, only single GPU supported.')
     Avg_pw_parser.add_argument('Log File name',
                               help='Please enter the Log File name')
     
@@ -221,7 +225,7 @@ def main():
 
     Sort_coord_parser.add_argument('Tube_path',widget="DirChooser",
                                    help='Please input the dir of tubes')
-    Sort_coord_parser.add_argument('Coordinate_path',
+    Sort_coord_parser.add_argument('Coordinate_path',widget="DirChooser",
                               help='Please input the dir of coordinagte of tubes')
     Sort_coord_parser.add_argument('Log File name',
                               help='Please enter the Log File name')
@@ -254,7 +258,7 @@ def main():
     IHRSR_parser.add_argument('Particle_set',widget="FileChooser",
                                    help='Please input the particles')
     IHRSR_parser.add_argument('Particle_num',
-                              help='Set the number of iterations',default=30)
+                              help='Set the number of iterations')
     IHRSR_parser.add_argument('Pixel_size',
                               help='Please input the pixel size of initial model')
     IHRSR_parser.add_argument('Box_size',
@@ -266,7 +270,7 @@ def main():
     IHRSR_parser.add_argument('Serach_range',
                               help='Set the serach range between each resolution',default=5)
     IHRSR_parser.add_argument('Max_Serach_range',
-                              help='Set the Max serach range, this value should be smaller than (box_size/2)-serach_range',default=25)
+                              help='Set the Max serach range, this value should be smaller than (box_size/2)-serach_range',default=38)
     IHRSR_parser.add_argument('Inplane_angular',
                               help='Set the inplane_angular deviation',default=3)
     IHRSR_parser.add_argument('Out_of_plane_tilt_range',
@@ -906,7 +910,7 @@ def main():
             os.mkdir('./Extract_particles/{}'.format(str(dic['Log File name'])))
 
         config_keys=["command","Star_file","Micrographs","Coordinates","CTF_multiply",
-                     "Box_size","Step","Pixel_size","Extract_options","Log_File_name"]
+                     "Box_size","Step","Pixel_size","Extract_options","GPU","Log_File_name"]
         values=[dic[key] for key in dic.keys()]
 
         with open('./Extract_particles/{}/extract_config.txt'.format(str(dic['Log File name'])),"w+") as f:
@@ -935,6 +939,17 @@ def main():
             else:
                 os.mkdir(ctfm_path)
 
+
+            if dic["GPU"]!=None:
+
+                GPU_id=int(dic["GPU"])
+        
+                calculate_device=f"cuda:{GPU_id}"
+            
+            else:
+
+                calculate_device="cpu"
+
             df=starfile.read(dic["Star_file"])
 
             img_list=[f"{img_dir}/{os.path.basename(i)}" for i in df["micrographs"]["rlnMicrographName"].to_list()]
@@ -957,12 +972,12 @@ def main():
             print("Conducting Pre-mutiply CTF to micrographs according the star file...")
             n=10
             for i in range(0,len(img_list),n):
-                img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0)
+                img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
                 img_name_split=img_name[i:i+n]
-                M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False)
+                M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False).to(calculate_device)
                 f_img=torch.fft.rfftn(img_stack,dim=(-2,-1))
                 f_ctfm=f_img*M_ctf
-                ctfm_img=torch.real(torch.fft.irfftn(f_ctfm,dim=(-2,-1)))
+                ctfm_img=torch.fft.irfftn(f_ctfm,dim=(-2,-1)).cpu()
                 for m in range(len(img_name_split)):
                     with mrcfile.new(f"{ctfm_path}/{img_name_split[m]}",overwrite=True) as mrc:
                         mrc.set_data(ctfm_img[m].numpy())
@@ -1055,6 +1070,7 @@ def main():
         step=int(dic["Step"])
         angpix=float(dic["Pixel_size"])
 
+
         if dic["Invert_options"]=="Yes":
 
             invert_option=True
@@ -1144,7 +1160,7 @@ def main():
             
             os.mkdir(f'./Average_power_spectra/{log_name}')
         
-        config_keys=["command","Tube_path","Cut_length","Pad_size","Cut_step","Log_File_name"]
+        config_keys=["command","Tube_path","Cut_length","Pad_size","Cut_step","GPU","Log_File_name"]
         values=[dic[key] for key in dic.keys()]
         
         with open(f'./Average_power_spectra/{log_name}/average_power_spectra_config.txt',"w+") as f:
@@ -1159,8 +1175,17 @@ def main():
         pad_size=int(dic["Pad_size"])
         cut_step=int(dic["Cut_step"])
         save_path=f'./Average_power_spectra/{log_name}'
+
+        if dic["GPU"]!=None:
+
+            GPU_id=int(dic["GPU"])
         
-        Diameter_classification.get_avg_pw(tube_path,tube_length,pad_size,cut_step,save_path)
+        else:
+
+            GPU_id=dic["GPU"]
+
+        
+        Diameter_classification.get_avg_pw(tube_path,tube_length,pad_size,cut_step,GPU_id,save_path)
     
 
     elif dic["command"]=="Sorting_coordinates":
