@@ -28,7 +28,7 @@ pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https
 
 Environments:
 ---
-**1.You could simply just get the environment file by:**
+**1.You could simply get the environment file by:**
 ```
 cd (where you install AI-HEAD)
 
@@ -47,9 +47,7 @@ export PATH=(where you install AI-HEAD):$PATH
 ```
 Usage:
 ---
-AI-HEAD provides a very friendly graphical interface. Once the operating environment is configured, you could open the interface
-
-and create new projects anywhere:
+AI-HEAD provides a very friendly graphical interface. Once the operating environment is configured, you could open the interface and create new projects anywhere:
 
 **Examples:**
 ```
