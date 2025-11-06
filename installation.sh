@@ -1,4 +1,0 @@
-mamba env create -f AI-HEAD.yaml
-mamba activate AI_HEAD_IHRSR
-pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
-pip install wxpython==4.2.1
