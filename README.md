@@ -2,7 +2,7 @@ Installation:
 ===
 **By mamba/conda (recommanded)**
 
-Ubuntu:
+Ubuntu/Centos/Rocky/Windows:
 ---
 ```
 mamba env create -f AI-HEAD.yaml
@@ -15,19 +15,7 @@ pip install wxpython==4.2.1
 
 pip install alive_progress
 ```
-
-Centos/Rocky:
----
-```
-mamba env create -f AI-HEAD.yaml
-
-mamba activate AI_HEAD_IHRSR
-
-pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
-
-pip install alive_progress
-```
-***The installation of wxPython 4.2.1 may failed in Centos/Rocky, but that would not affect the usage.**
+***The installation of wxPython 4.2.1 may failed, but that would not affect the usage.**
 
 ***If the installation of wxpython pip fails, you can try installing the gtk3.0 library on your system.**
 
@@ -87,6 +75,7 @@ External_programs:
 SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
 
 IHRSR program could be got at /external
+
 
 
 
