@@ -12,6 +12,8 @@ mamba activate AI_HEAD_IHRSR
 pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
 
 pip install wxpython==4.2.1
+
+pip install alive_progress
 ```
 
 Centos/Rocky:
@@ -70,3 +72,4 @@ External_programs:
 SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
 
 IHRSR program could be got at /external
+
