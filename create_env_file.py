@@ -7,3 +7,8 @@ with open("AI_HEAD_ENV.sh","w+") as f:
   f.write(f"export AI_HEAD_PATH={path}\n")
   f.write(f"export AI_HEAD_LIB_PATH={path}/utils\n")
   f.write(f"export PATH={path}/:$PATH\n")
+  
+with open("IHRSR_ENV.sh","w+") as f:
+
+  f.write(f"export PATH={path}/external/IHRSR_v1.5/:$PATH\n")
+  f.write(f"export LD_LIBRARY_PATH={path}/external/libgfortran_for_ihrsr/:$LD_LIBRARY_PATH\n")

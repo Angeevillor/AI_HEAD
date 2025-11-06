@@ -990,7 +990,7 @@ def main():
                     with mrcfile.new(f"{ctfm_path}/{img_name_split[m]}",overwrite=True) as mrc:
                         mrc.set_data(ctfm_img[m].numpy())
                         mrc.voxel_size=(apix,apix,0)
-                print(f"{i+len(img_name_split)}/{len(img_list)} has been pre-mutiplied!")
+                print(f"{i+len(img_name_split)}/{len(img_list)} has been pre-multiplied!")
 
 
             if os.path.exists(tube_path):

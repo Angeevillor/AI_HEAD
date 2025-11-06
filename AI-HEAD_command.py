@@ -426,7 +426,7 @@ if __name__ =="__main__":
             Ast=df_data["rlnCtfAstigmatism"].to_numpy()/20000
             Angle=df_data['rlnDefocusAngle'].to_numpy()
 
-            print("Conducting Pre-mutiply CTF to micrographs according the star file...")
+            print("Conducting Pre-multiply CTF to micrographs according the star file...")
             n=10
             for i in range(0,len(img_list),n):
                 img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
