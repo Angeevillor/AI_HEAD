@@ -65,3 +65,8 @@ AI-HEAD_command.py --config config_files.txt
 
 Both of them could get everything done, so just choose the version you like.
 
+External_programs:
+---
+SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
+
+IHRSR program could be got at /external
