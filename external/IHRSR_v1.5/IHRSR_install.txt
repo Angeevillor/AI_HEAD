@@ -1,0 +1,50 @@
+***** Installation
+
+Simply uncompress and un-tar the archive, and copy the IHRSR directory
+to the desired location.
+
+      tar -xzvf IHRSR_vx.y.tar.gz
+      cp -r IHRSR_vx.x IHRSR_path
+
+Then set your path so that scripts and executables can be found. For
+example, add the following to your .csrhc file
+
+      set path = (/IHRSR_path/IHRSR_vx.y $path)
+      setenv SPPROC_DIR /IHRSR_path/IHRSR_vx.y
+
+For users running on an x86_64 architecture, the software should be
+ready to use. If you need to rebuild the himpose and hsearch_lorentz
+applications, go into the IHRSR_vx.y/src directory, execute 'make
+all', and copy the executables into place.
+
+
+
+***** Software requirements
+
+Spider: The software should be able to run under any modern version of
+Spider, but we strongly recommend that you upgrade to at least version
+17.05. This will enable you to handle larger image sizes and take
+advantage of faster algorithms. It will also ensure that the
+relationship between the search range and max ring parameters
+described in the main application (bob_helix.spd) is valid.
+
+Perl: While not needed to run the main helical reconstruction program,
+many of the preprocessing scripts are written in Perl. We haven't
+tested this extensively, but any version of Perl 5 should work.
+
+Fortran compiler: The software distribution is released with versions
+of the external programs himpose and hsearch_lorentz precompiled for
+x86_64 hardware. If you need to build these for another architecture
+or wish to modify the applications, you'll need access to a Fortran
+compiler. We have successfully used gfortran and PGI compilers, but
+any Fortran 90 compliant compiler should do.
+
+EMAN: Not required for the main helical reconstruction program, but is
+helpful if you need to convert MRC files to Spider format (proc2d),
+box helices from micrographs (helixboxer), or view results (v2).
+
+libpgc.so: In the event that you need to call the program himpose_long
+(not used by the standard helical reconstruction program), you'll need
+to make sure that you have a copy of the libpgc.so library in
+/usr/lib. This library is included in the software distribution.
+

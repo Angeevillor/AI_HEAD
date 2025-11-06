@@ -1,0 +1,568 @@
+; +++++ Set number of Open MP threads
+md
+set mp
+4
+
+; +++++ Image stack name
+; IMPORTANT - path cannot be more than 80 characters
+; IMPORTANT - .dat extension must be omitted
+FR L
+[image_stack] /home/sinkovit/KP_20100125/c3760_1fin_cent
+
+; +++++ Suffix for volume files
+; IMPORTANT - no spaces allowed between [volsurf] and name
+FR L
+[volsuf]c3760_1_
+
+; +++++ Cn/Dn Symmetry information
+[Cn] = 1           ; point group symmetry (set to 1 for no Cn symmetry)
+[dihedral] = 0     ; 1 for dihedral symmetry, 0 otherwise
+[win_dim]  = 80    ; windowed img dimension (pixels) - used w/ Dn sym only
+
+; +++++ Iteration parameters
+; NOTE - For new run, set start_cycle = 2
+[start_cycle] = 2       ; start cycle (set to 1 greater than starting volume)
+[end_cycle]   = 10      ; end cycle
+
+; +++++ Min/max radii considered in search
+FR L                   ; Minimum radius for search (Angstroms)
+[rad_min] 100.0        
+FR L                   ; Maximum radius for search (Angstroms)
+[rad_max] 275.0
+
+; +++++ hsearch_lorentz and himpose parameters
+; NOTE - Keep defaults (0.1) unless you really know what you're doing
+FR L                   ; Phi increment for search (degrees)
+[inc_phi] 0.1
+FR L                   ; z-increment for search (Angstroms)
+[inc_z] 0.1
+
+; +++++ Pixel size
+; IMPORTANT - must be set twice as shown below. 1st instance is for use
+;             by Spider, 2nd is used by externally called programs
+FR L                     ; pixel size (Angstroms)
+[pixel_size_string] 3.24
+[pixel_size] = 3.24      ; pixel size (Angstroms)
+
+; +++++ Search parameters
+; NOTE - Following relation must be satisfied
+;        [max_ring] + [search_range] < [img_dim]/2 - 2
+;
+; NOTE - Keep nshift=1 unless you really know what you're doing
+;        Rather than comparing against full projection, can divide
+;        into slices. Divide original choice for [search_range] by 
+;        [nshift] and then adjust [max_ring] to satisfy relation
+
+[search_range]    = 2    ; search range (pixels) divided by # nshifts
+[min_ring]        = 1    ; minimum ring (pixels)
+[max_ring]        = 105  ; maximum ring (pixels)
+[nshift]          = 1    ; # shifts used to generate ref projs (Ed's trick)
+[max_inplane_dev] = 6.0  ; maximum in-plane deviation
+[ang_incr]        = 1.5  ; increment for azimuthal search (degrees)
+
+; +++++ Initial guess for helical symmetry parameters
+[rise] = 11.5            ; axial rise - initial estimate (Angstroms)
+[deltaphi] = -131.8      ; rotation per subunit - initial est (degrees)
+
+; +++++ Out-of-plane search parameters
+; NOTE - Keep noutp = 0 to skip search over out-of-plane angles
+[noutp] = 0;             ; Number of out of plane deviations in each direction
+[outp_incr] = 5.0;       ; Step size for out of plane deviations     
+
+
+; ---------------------------------------------------------------
+; ----- Should not need to change anything below this point -----
+; ---------------------------------------------------------------
+
+; Numerical constants
+[ninety]    = 90.0
+[mninety]   = -90.0
+[zero]      = 0.0
+
+; Turn off verbose ouput
+MD
+VB OFF
+
+; Get rid of preexisting files that may cause problems
+SYS
+rm -f newboxes.dat
+SYS
+rm -f angsym.dat
+SYS
+rm -f fangles_ran.dat
+SYS
+rm -f ftzdsk_ran.dat
+SYS
+rm -f refproj.dat
+SYS
+rm -f tmp.dat
+SYS
+rm -f angleproj.dat
+
+
+; If new run, make sure we have symdoc file
+if([start_cycle].eq.2) then
+  SYS
+  rm -f symdoc.dat
+  sd 1, [deltaphi], [rise]
+  symdoc
+  sd 2, [deltaphi], [rise]
+  symdoc
+  sd e ; Close document file
+  symdoc
+endif
+
+; Calculate number of ref projs (360/n*[ang_incr]) for Cn symm
+[nazim] = INT(360.0/([Cn]*[ang_incr]))
+
+; Get size of images in stack file
+fi x [nrow],[nsam]      ; Extract number of rows and pixels/row from image
+[image_stack]@001       ;   image name
+(2,12)                  ;   nrow,nsam = header locations 2,12
+
+[img_dim] = [nrow]
+
+; Make sure that images are square
+if([nrow].ne.[nsam]) then
+  SYS
+  echo "Images in input stack are not square - terminating program"
+  en d
+endif
+
+; Obtain number of images in stack file
+fi x [nimg]
+  [image_stack]@
+  (26)
+
+; Generate symmetry file used for back projection
+do [i]=1,[Cn]
+  [angle] = ([i]-1)*360/[Cn]
+  sd [i],[zero],[angle],[zero]
+  angsym
+enddo
+
+sd e ; Close document file
+  angsym
+
+; -------- Generate starting map if one does not exist --------
+if([start_cycle].eq.2) then
+
+  iq fi [exists]
+    [volsuf]001
+
+  if([exists].eq.0) then
+
+    ; Generate list of random orientations
+    [dummy]=0
+    do [k]=1,[nimg]
+      [azimuth] = (RAN([dummy])*360/[Cn])
+      sd [k], [zero], [azimuth], [zero]
+        fangles_ran
+    enddo
+
+    sd e
+      fangles_ran
+
+    ; Reconstruct map using back projection
+    bp 3f                  ; back projection, 3D Fourier space 
+      [image_stack]@*****  ;  template for image files	     
+      (1-[nimg])	   ;  range of image numbers to use    
+      fangles_ran	   ;  projection angles file	     
+      angsym		   ;  apply point group symmetry
+      ftzdsk_ran	   ;  reconstructed volume             
+
+    ; Apply symmetry
+    SYS
+    himpose ftzdsk_ran.dat symdoc.dat [volsuf]001.dat [pixel_size_string] [rad_min] [rad_max]
+
+    SYS ; No longer needed
+    rm -f fangles_ran.dat
+    SYS ; No longer needed
+    rm -f ftzdsk_ran.dat
+  endif
+endif
+; -------- END Generate starting map if one does not exist --------
+
+; Now iterate, starting from previous 3D reconstruction 
+do [cycle] = [start_cycle], [end_cycle]
+
+[prev_cycle]=[cycle]-1
+
+; If imposing dihedral symmetry, make sure that we have a
+; corresponding "s" volume corresponding to previous iteration.
+; This feature is normally used when adding dihedral symmetry
+; on a continuation run
+
+if([dihedral].eq.1) then
+  iq fi [exist]
+    s[volume]{***[prev_cycle]}
+
+  if([exist].eq.0) then
+    SYS
+    ln -s [volsuf]{***[prev_cycle]}.dat s[volsuf]{***[prev_cycle]}.dat
+  endif
+endif
+
+; Generate reference projections due to azimuthal rotation
+
+; Rotate reference volume so its back in spider orientation)
+if([dihedral].eq.1) then
+  rt 3d 
+    s[volsuf]{***[prev_cycle]}
+    _1
+    ([zero],[ninety],[ninety])
+else
+  rt 3d 
+    [volsuf]{***[prev_cycle]}
+    _1
+    ([zero],[ninety],[ninety])
+endif
+
+[counter] = 0        ; global counter for projections
+[coop]    = 0        ; counter for out-of-plane angles
+[mnoutp]  = -[noutp] ; spider can't handle minus sign in loop range variable
+
+do [p]=[mnoutp],[noutp] ; Loop over out-of-plane projections
+
+  [coop] = [coop]+1
+
+  ; Generate list of projection angles
+  do [i]=1,[nazim]
+    [outp]   =[p]*[outp_incr]      ; out of plane angle
+    [azimuth]=([i]-1.)*[ang_incr] ; azimuthal angle
+
+    ; Combining two sets of rotations
+    sa e, [phi],[theta],[psi]
+      [zero],[azimuth],[zero]
+      [ninety],[outp],[mninety]
+
+    ; Write projection angles to doc file
+    ; NOTE! PJ 3Q angles = (PSI,theta,PHI) - PJ 3 angles = (PHI,theta,PSI)
+    sd [i],[psi],[theta],[phi]
+       angleproj
+  enddo
+
+  ; Generate projections for this out-of-plane tilt
+  pj 3q                        ; Calculate projections of volume
+    _1                         ;  input volume
+    ([img_dim]-1)              ;  projection radius
+    (1-[nazim])                ;  records to use from angleproj
+    angleproj                  ;  doc file containing projection angles
+    tmp@***                    ;  output
+
+  ; Increment counter to account for block of [nazim] projections
+  [counter] = [counter] + [nazim]
+
+  ; Copy new projections to end of refproj
+  do [i]=1,[nazim]
+    [j]=([coop]-1)*[nazim]*[nshift] + [i]
+    cp
+      tmp@{***[i]}
+      refproj@{***[j]}
+  enddo
+
+  ; Generate additional reference projections due to shifts
+  if([nshift].gt.1) then
+    [nshift_minus_one]=[nshift]-1
+    do [i]=1,[nshift_minus_one]
+      [yshift]=[i]*[rise]/([pixel_size]*[nshift])
+      do [j]=1,[nazim]
+        [counter] = [counter] + 1
+        [k] = [j] + ([p]+[noutp])*[nazim]*[nshift]
+        sh                           ; Shift with Fourier interpolation
+          refproj@{***[k]}           ;   input image
+          refproj@{***[counter]}     ;   output image
+          ([zero],[yshift])          ;   xshift, yshift
+      enddo
+    enddo
+  endif
+
+  ; Close and then remove angleproj
+  sd e
+    angleproj
+  SYS
+  rm -f angleproj.dat
+
+enddo
+
+
+; Find the reference projection that best matches each image
+SYS
+rm -f fparamzds+{***[cycle]}.dat
+[total_proj]=[nazim]*[nshift]*([noutp]*2 + 1)
+ap shc                           ; alignment - multiref, fast exhaustive rot and shift 
+  refproj@***                    ;   template for reference projections
+  (1-[total_proj])               ;   range of projections to use
+  ([search_range],1)             ;   search range, step
+  ([min_ring],[max_ring],1,1)    ;   first and last ring, ring and ray step 
+  *                              ;   optional reference images angles file
+  [image_stack]@*****            ;   template for images
+  (1-[nimg])                     ;   range of images to use
+  *                              ;   optional exp images alignment file
+  (0.0,0.0)                      ;   range of angle search, angle threshold
+  N                              ;   check of mirror images
+  fparamzds+{***[cycle]}         ;   results file projection number etc.
+
+sd e ; Close document file
+  fparamzds+{***[cycle]}
+
+; Go through fparamzds+ file, screen out bad ptles based on in-plane
+; deviation and write out fgoodparamzds file
+
+[ngood]=0
+SYS
+rm -f fgoodparamzds+{***[cycle]}.dat
+SYS
+rm -f fangles{***[cycle]}.dat
+SYS
+rm -f fgoopazim{***[cycle]}.dat
+
+DO LB11 [k]=1,[nimg]
+  UD IC,[k],[best_proj],[cc],[inplane_rot],[xshift],[yshift],[img_num]
+  fparamzds+{***[cycle]}
+
+  ; Shift in-plane rotation to be in range 0-360
+  if([inplane_rot].gt.360)[inplane_rot] = [inplane_rot] -360.
+  if([inplane_rot].lt.0)[inplane_rot] = 360. + [inplane_rot]
+
+  ; Eliminate ptles outside range of allowed in-plane deviation
+  ; Allow deviations from both 0 and 180 degress
+  if([inplane_rot].lt.(180.-[max_inplane_dev]))then
+    if([inplane_rot].gt.[max_inplane_dev]) go to LB11
+  endif
+  if([inplane_rot].gt.(180.+[max_inplane_dev]))then
+    if([inplane_rot].lt.(360.-[max_inplane_dev])) go to LB11
+  endif
+
+  ; If we made it this far, ptle within allowed in-plane deviation
+  [ngood]=[ngood]+1
+  sd [ngood],[best_proj],[cc],[inplane_rot],[xshift],[yshift],[ngood]
+  fgoodparamzds+{***[cycle]}
+
+  ; --- Converting index of the best projection to angles and shifts ---
+
+  ; Figure out what block (starting from zero) we are in.
+  ; All values within a block have same out-of-plane angle
+  [block] = INT(([best_proj]-1)/([nazim]*[nshift]))
+
+  ; Calculate out-of-plane angle
+  [outp] = [outp_incr]*([block]-[noutp])
+
+  ; Figure out index within a block
+  [best_in_block]  = [best_proj] - [block]*[nazim]*[nshift]
+
+  ; Calculate "composite" y-shift accounting for shifts in ref projs
+  [jshft]=INT(([best_in_block]-1)/[nazim])
+  [composite_yshift]=[yshift] - [jshft]*[rise]/([pixel_size]*[nshift]) 
+
+  ; Calculate azimuthal angle 
+  [azimuth]=([best_in_block] - [jshft]*[nazim] -1.)*[ang_incr]
+
+  ; Combine two sets of rotations
+   sa e, [phi],[theta],[psi]
+     [zero],[azimuth],[zero]
+     [ninety],[outp],[mninety]
+
+  ; Write new document file containing angles
+
+  sd [ngood],[psi],[theta],[phi]
+    fangles{***[cycle]}
+
+  sd [ngood],[best_proj],[outp],[azimuth]
+    fgoopazim{***[cycle]}
+
+
+  ; Write new stack file w/ images corrected for shift and in-plane rotation
+  RT SQ                             ; Rotate and shift - quadratic interpolation
+    [image_stack]@{*****[img_num]}  ;   input image
+    newboxes@{*****[ngood]}         ;   output image
+    [inplane_rot]                   ;   rotation
+    [xshift],[composite_yshift]     ;   shift
+
+LB11
+
+ud ice ; Terminate access to in-core image of document file
+  fparamzds+{***[cycle]}
+
+sd e ; Close document file
+  fangles{***[cycle]}
+
+sd e ; Close document file
+  fgoopazim{***[cycle]}
+
+sd e ; Close document file
+  fgoodparamzds+{***[cycle]}
+
+; Reconstruct map using back projection
+bp 3f                  ; back projection, 3D Fourier space 
+  newboxes@*****	 ;  template for image files	     
+  (1-[ngood])		 ;  range of image numbers to use    
+  fangles{***[cycle]}	 ;  projection angles file	     
+  angsym		 ;  apply point group symmetry
+  ftzdsk{***[cycle]}	 ;  reconstructed volume             
+
+; Now the hard part, impose helical symmetry on threed***
+; phistart, zstart (initial guesses at symmetry) 
+
+if([cycle].gt.2) then
+SYS
+hsearch_lorentz ftzdsk{***[cycle]}.dat symdoc.dat [pixel_size_string] [rad_min] [rad_max] [inc_phi] [inc_z]
+endif
+
+SYS
+himpose ftzdsk{***[cycle]}.dat symdoc.dat [volsuf]{***[cycle]}.dat [pixel_size_string] [rad_min] [rad_max]
+
+if([dihedral].eq.1) then ; Apply dihedral symmetry
+
+  ; Get rid of preexisting files that may cause problems
+  SYS
+  rm -f ccdoc.dat
+  SYS
+  rm -f ccdocs.dat
+  SYS
+  rm -f [volsuf]{***[cycle]}r.dat
+  SYS
+  rm -f [volsuf]{***[cycle]}rs.dat
+
+  rt 90                   ; Generate new volume rotated by 90 degrees
+    [volsuf]{***[cycle]}  ;   input volume
+    [volsuf]{***[cycle]}r ;   output (flipped) volume
+    (1,[img_dim])         ;   first and last x column
+    (1,[img_dim])         ;   first and last y column
+    (1,[img_dim])         ;   first and last z column
+    x                     ;   rotation axis
+    (180)                 ;   rotation angle
+
+  ; Calculate location of top left corner of windowed volumes
+  [corner] = ([img_dim]-[win_dim])/2 + 1
+
+  wi                                ; Window original volume
+    [volsuf]{***[cycle]}            ;   input volume
+    _1                              ;   windowed volume
+    ([win_dim],[win_dim],[win_dim]) ;   window size
+    ([corner],[corner],[corner])    ;   top left coordinates
+
+  wi                                ; Window flipped volume
+    [volsuf]{***[cycle]}r  	    ;   input volume	    
+    _3			  	    ;   windowed volume	    
+    ([win_dim],[win_dim],[win_dim]) ;   window size
+    ([corner],[corner],[corner])    ;   top left coordinates
+
+  ; Get best CC for each choice of dihedral angle (1 degree increment)
+  do [phi]=1,360 
+    RT 3D                    ; Rotate windowed/flipped volume about azimuth
+      _3                     ;   input volume
+      _2                     ;   output volume
+      [phi],[zero],[zero]    ;   phi, 0, 0
+
+    CC N                     ; Normalized cross correlation between ...
+      _1                     ;   windowed original volume
+      _2                     ;   windowed, flipped, rotated volume
+      _4                     ;   cross correlation coefficients (output)
+
+    PK 3 [ix],[iy],[iz],[fx],[fy],[fz],[h] ; 3D peak search
+      _4                                   ;   input file (CCs)
+      +                                    ;   look for maxima
+      (1,0)                                ;   1 peak, w/o override
+      N                                    ;   N = simple peak search
+      N                                    ;   not sure why this is needed
+
+    SD [phi],[h],[fx],[fy],[fz]  ; Write peak height and coors (key=[phi])
+      ccdoc                      ;   to file ccdoc.dat
+  enddo
+
+  sd s        ; Sort document file
+    ccdoc     ;   input file name
+    (1,360)   ;   first key, last key
+    (1)       ;   sort based on column 1
+    (4,4)     ;   write [fz] to the new doc file
+    ccdocs    ;   output file name (sorted file)
+
+  sd e        ; Close document
+    ccdoc
+  sd e        ; Close document
+    ccdocs
+
+  ; Get information from last line of sorted document file
+  [key]=360             
+  ud [key],[phi],[junk],[fz]
+    ccdocs
+
+  ; impose shift [fz] and rotation [phi] on flipped volume
+  RT 3D                    ; Rotate volume about azimuth
+    [volsuf]{***[cycle]}r  ;   input volume (flipped)
+    _1                     ;   output volume (rotated, flipped)
+    [phi],[zero],[zero]    ;   phi, 0, 0
+  SH                       ; Shift volume
+    _1                     ;   input volume (defined above)
+    [volsuf]{***[cycle]}rs ;   output volume (shifted, rotated, flipped)
+    [zero],[zero],[fz]     ;   xshift, yshift, zshift
+
+  ; Add togther original volume and shifted, rotated, flipped volume
+  ad                       ; Add volumes
+    [volsuf]{***[cycle]}   ;   first input volume
+    [volsuf]{***[cycle]}rs ;   second input volume
+    _1                     ;   output volume
+    *                      ;   done
+
+  ; Rescale density of the new volume (divide by 2)
+  ar              ; Arithmetic operation
+    _1            ;   input volume (summed volume)
+    _2            ;   output volume (averaged volume)
+    (0.5*p1)      ;   operation (mutliply by 0.5)
+ 
+  ; window out the ends to account for shift of flipped
+  ; volume relative to the original volume
+
+  [zdim] = [img_dim]-int(abs([fz]))
+  [top_left_z] = int(abs([fz])) + 1
+
+  if([fz].ge.0.)then
+    wi                            ; Window volume
+      _2                          ;  input (averaged) volume
+      _1                          ;  output volume 
+      [img_dim],[img_dim],[zdim]  ;  window dimensions
+      (1,1,[top_left_z])          ;  top left corner
+  else
+    wi                            ; Window volume
+      _2                          ;  input (averaged) volume
+      _1                          ;  output volume
+      [img_dim],[img_dim],[zdim]  ;  window dimensions
+      (1,1,1)                     ;  top left corner
+  endif
+
+  [top_left_z]=int(abs([fz])/2.)
+  pd                              ; Pad volume out to original dimensions
+    _1                            ;  input volume (defined above)
+    s[volsuf]{***[cycle]}         ;  output volume
+    [img_dim],[img_dim],[img_dim] ;  padded volume dimensions
+    b                             ;  use border value for padding
+    (1,1,[top_left_z])            ;  top left coordinates
+
+  ; now cleanup
+  UD E
+  ccdocs
+  SYS
+  rm -f ccdoc.dat
+  SYS
+  rm -f ccdocs.dat
+  SYS
+  rm -f [volsuf]{***[cycle]}r.dat
+  SYS
+  rm -f [volsuf]{***[cycle]}rs.dat
+
+endif ; End block of code for dihedral symmetry
+
+enddo ; End loop over cycles
+
+; Cleaning up files
+SYS
+rm -f newboxes.dat
+SYS
+rm -f refproj.dat
+SYS
+rm -f tmp.dat
+SYS
+rm -f angleproj.dat
+
+en d

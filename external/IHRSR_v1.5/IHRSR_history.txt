@@ -1,0 +1,118 @@
+---------- Modifications new to IHRSR_v1.5 ----------
+
+(1) updated syntax for making the scripts compatible with Spider v21
+
+---------- Modifications new to IHRSR_v1.4 ----------
+
+(1) bob_helix.spd modified to more easily handle the transition from
+    reconstruction without dihedral symmetry to one with dihedral
+    symmetry. If the corresponding "svolume" file does not exist, a
+    symbolic link is set that points to the volume file. For example
+
+    svolume_005.dat --> volume_005.dat
+
+(2) New program mappw2.spd takes either a 3D map or a 2D projection of
+    the map and generates a simulated power spectrum. For best results
+    a long version of the map should be generated using himpose and
+    the largest possible padding should be used. Experience shows that
+    using maps and padding dimensions of 8192 works best.
+
+(3) All spider scripts that need to determine the number of images in
+    a stack now do so much more efficiently.
+
+(4) pwstack.spd modified to give user choice of generating stack of
+    power spectra, averaged power spectrum, or both from input image
+    stack.
+
+(5) himpose modified to handle functionality contained in himpose_long
+    and to optionally generate a 2D projection of the map instead of
+    the 3D map.
+
+(6) hsearch_lorentz and himpose both write usage information to stdout
+    if executed with either no or insufficient command line arguments.
+
+(7) All spider scripts that use the FR command modified to use RR
+    where appropirate. The former is meant only for string data while
+    the latter is meant for register variables.
+
+(8) Add 3rd argument to dimensions in PD command where necessary. As
+    of spider 18.10, the 3rd argument is required (set to 1) even if
+    working with 2d images
+
+---------- Modifications new to IHRSR_v1.3 ----------
+
+(1) Added new spider script center_tubes.sp[di]. Takes an image stack
+    and generates a new stack with the tube sgements properly centered
+    in the box.
+
+(2) helix_automation now has greater flexibility in handling different
+    file types (mrc, dat, and spi extensions). Also has option to
+    generate windowed power spectra to minimize the amount of disk
+    space used.
+
+(3) Documentation added to helix_cutstk
+
+(4) bob_helix.spd modified to more diligently remove temporary files
+    that may cause problems upon restarting calculations.
+
+---------- Modifications new to IHRSR_v1.2 ----------
+
+(1) bob_helix now has capabilities for determining out-of-plane tilt
+
+(2) Created version of CTF correction script that does not require a
+    prompt (ctf_corr_noprompt.spi). Done so that program can be run in
+    batch mode.
+
+(3) Modified bob_helix.spd to automatically generate starting map if
+    one has not been provided.
+
+(4) Get rid of merge_stack.pl and replace with v1.0 merge_stack.pl to
+    allow merging of multiple files.
+
+(5) Modified bob_helix to use "PJ 3Q" instead of "PJ 3" to generate
+    projections of the model. The former is supposed to be much faster
+    than the latter.
+
+(6) Implemented fix in ipdlp.spd so that the resolution parameter can
+    contain a decimal place. For example, in the old version "25"
+    would work as a cutoff resolution but "25.0" would fail. Probably
+    due to some weirdness in how spider parses expressions.
+
+(7) Added new script pwstack.spd that generates a stack of power
+    spectra from an image stack.
+
+(8) ctf correction scripts now correctly handle non-square images and
+    dynamically set size of padded image before applying ctf.
+
+(9) helix_automation now allows user to omit applying threshold to
+    power spectra.
+
+(10) Improved memory management in himpose and hsearch_lorentz so that
+     arrays are dynamically set to the right size. No longer necessary
+     to recompile for different sized images or symmetry
+     parameters. Deleted himpose_big since it is now subsumed by
+     himpose.
+
+---------- Modifications new to IHRSR_v1.1 ----------
+
+(1) New script ctf2inv calculates the average 1/(CTF^2) from list of
+    defocus values and stack sizes. Automatically accounts for number
+    of images in each stack and sets values at low spatial frequencies
+    to reasonable value.
+
+(2) New script apply_function applies a function to transform of a
+    map. Typically used in conjuction with ctf2inv.
+
+(3) merge_stack.pl has been replaced with the spider script
+    merge_stack. This has been done so as to be consistent with the
+    split_stack script
+
+(4) merge_stack and split_stack now delete existing output files
+    before writing new files. Avoids problems when new stacks have
+    fewer images than old stacks.
+
+(5) ctf_corr_othersign has been merged into ctf_corr. User will now be
+    prompted for sign.
+
+(6) Additional options added to filter
+

@@ -1,0 +1,130 @@
+; Get the power spectrum of projection of map
+
+VM
+  echo "Generate power spectrum from projection of helical structure"
+VM
+  echo "May provide 3D map or 2D projection of map. For 3D map, helical"
+VM
+  echo "axis must be parallel to z-axis. For 2D projection, long"
+VM
+  echo "dimension must be oriented along y-axis"
+VM
+  echo ""
+VM
+  echo "Note that thresholded spectrum is generated in addition to"
+VM
+  echo "non-thresholded spectrum, with pixel intensities first"
+VM
+  echo "normalized to range 0-1 before thresholding"
+VM
+  echo ""
+VM
+  echo "Names of power spectra and thresholded power spectra"
+VM
+  echo "based on infile name with pow_ and tpow_ prefixes"
+VM
+  echo ""
+
+
+; Prompting user for input parameters
+FR                   
+? Input map or projection ? [map_in]
+RR [pad_box]
+? Padded transform size (> largest image dimension)?
+RR [rtmp]
+? Threshold value (enter 0 to not generate thresholded map)?
+
+
+; For some unknown reason, may need to copy input parameter 
+; into another variable if parameter contains a decimal point
+[thresh]=[rtmp]
+
+
+; Delete power spectra file if it exists
+VM
+rm -f pow_[map_in].dat
+VM
+rm -f tpow_[map_in].dat
+
+
+; Get map dimensions
+fi x [nsec], [nrow], [nsam]
+  [map_in]
+  (1,2,12)
+
+
+; Make sure that padded box dimensions are large enough
+if([pad_box].lt.[nsam]) then
+  VM
+  echo "Padded box size must be >= image width"
+  en d
+endif
+
+if([pad_box].lt.[nrow]) then
+  VM
+  echo "Padded box size must be >= image height"
+  en d
+endif
+
+if([pad_box].lt.[nsec]) then
+  VM
+  echo "Padded box size must be >= image length"
+  en d
+endif
+
+
+if([nsec].gt.1) then
+  ; Rotate map	
+  rt 90
+    [map_in]
+    _1
+    (1,[nsam])
+    (1,[nrow])
+    (1,[nsec])
+    x
+    (90)
+
+  ; Collapse rotated map along z-direction
+  dc s
+    _1
+    _2
+    (1,1)
+    ([nrow]) ; old x-dim is new z-dim
+
+  ; Pad the collapsed map
+  pd                           ; Pad image
+    _2
+    _3
+    ([pad_box],[pad_box],1)    ;  padded image dimensions
+    B                          ;  use average of border pixel
+    1,1                        ;  location of upper left corner
+else
+  pd
+    [map_in]
+    _3
+    ([pad_box],[pad_box],1)    ;  padded image dimensions
+    B                          ;  use average of border pixel
+    1,1                        ;  location of upper left corner
+endif
+
+; Calculate power spectrum
+pw 2
+  _3
+  _4
+
+ar sca
+  _4
+  pow_[map_in]
+  (0, 1)
+
+; Optionally threshold map
+if([thresh] .gt. 0.0) then
+  th s
+    pow_[map_in]
+    tpow_[map_in]
+    A
+    [thresh]
+endif
+
+
+en d

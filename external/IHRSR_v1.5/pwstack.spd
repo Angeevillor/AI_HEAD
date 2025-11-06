@@ -1,0 +1,94 @@
+; Generate stack and/or average of power spectra
+
+VM
+  echo "Generate a stack of power spectra and/or averaged power"
+VM
+  echo "spectrum from an image stack"
+
+
+; Prompting user for input parameters
+FR                   
+? Input image stack ? [imgstack_in]
+
+RR [make_stack]
+? Generate stack of power spectra (1 = yes, 0 = no) ?
+if([make_stack] .eq. 1) then
+  FR                   
+  ? Output stack containing power spectra ? [imgstack_out]
+endif
+
+RR [make_avg]
+? Generate averaged power spectrum (1 = yes, 0 = no) ?
+if([make_avg] .eq. 1) then
+  FR                   
+  ? Output stack containing power spectra ? [averaged]
+endif
+
+RR [pad_box]
+? Padded box size (> largest image dimension) ?
+
+if([make_avg] .eq. 1) then
+  bl
+    [averaged]
+    ([pad_box] [pad_box])
+    N
+    0.0
+
+; Get number of images in stack file
+fi x [count]
+  [imgstack_in]@
+  (26)
+
+; Delete power spectra file if it exists
+VM
+rm -f [imgstack_out].dat
+
+fi x [nrow],[nsam]         ; Extract number of rows and pixels/row from image
+[imgstack_in]@001          ;   image name
+(2,12)                     ;   nrow,nsam = header locations 2,12
+
+; Make sure that padded box dimensions are large enough
+if([pad_box].lt.[nsam]) then
+  VM
+  echo "Padded box size must be >= image width"
+  en d
+endif
+
+if([pad_box].lt.[nrow]) then
+  VM
+  echo "Padded box size must be >= image height"
+  en d
+endif
+
+; Loop over images and generate power spectra stack and or avg
+do [i]=1,[count]
+
+  pd                           ; Pad image
+    [imgstack_in]@{******[i]}  ;  input image
+    _1                         ;  output image
+    ([pad_box],[pad_box],1)    ;  padded image dimensions
+    B                          ;  use average of border pixel
+    1,1                        ;  location of upper left corner
+
+  pw 2                         ; Calcualte 2D power spectrum
+    _1                         ;   input image
+    _2                         ;   output  power spectrum
+
+
+  if([make_stack] .eq. 1) then   ; Creating stack
+    cp
+      _2
+      [imgstack_out]@{******[i]}
+  endif
+
+  if([make_avg] .eq. 1) then    ; Creating average
+    ad
+      _2
+      [averaged]
+      [averaged]
+      *
+  endif
+
+enddo
+
+en d

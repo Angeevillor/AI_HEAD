@@ -1,0 +1,194 @@
+; ---- Calculate 1/sum(ctf^2) ----
+
+md
+set mp
+4
+
+SYS
+echo "ctf2inv - script for calculating 1/<CTF^2>"
+SYS
+echo "  Format of defocus value file"
+SYS
+echo "    1 2 1140 1.40"
+SYS
+echo "    2 2 1592 2.01"
+SYS
+echo "    3 2 1700 1.31"
+SYS
+echo ""
+SYS
+echo "    1st field = key"
+SYS
+echo "    2nd field = 2 (number of fields to follow)"
+SYS
+echo "    3rd field = weight (e.g. number of images)"
+SYS
+echo "    4th field = defocus (microns)"
+SYS
+echo ""
+
+
+; Prompting user for input parameters
+FR                   
+? Input file containing defocus info ? [infile]
+FR                   
+? Output file containing avg(ctf^2) ? [ctf2_file]
+FR                   
+? Output file containing 1/avg(ctf^2) ? [invctf2_file]
+RR [pixel_size]
+? Pixel size (Angstroms) ?
+RR [kv]
+? Voltage (kV) ?
+RR [nmicro]
+? Number of micrographs ?
+RR [dim]
+? Image dimension ?
+
+; Calculate wavelength from accelerating voltage
+[lambda] = 12.3/sqrt([kv]*1000 + 0.978*[kv]*[kv])
+
+; Calculate maximum spatial frequency (Nyquist)
+[max_freq] = 1.0/(2.0*[pixel_size])
+
+; Calculate dim/2 and dim/2 + 1
+[halfdim]    = [dim]/2
+[halfdim_p1] = [halfdim] + 1
+
+; Hardcoded parameters
+[cs]=2.2                  ; values appropriate for Sphera and Polara
+[source_size]=0.001       ; Set so that envelope function has no effect
+[defocus_spread]=1.0      ; ... ditto
+[astigmatism]=0.0         ; Assume stigmated image
+[azimuth]=0.0             ; ... ditto
+[amplitude_contrast]=0.05 ; Value appropriate for Sphera and Polara
+[gauss]=10000.0           ; Essentially disables Gauassian falloff
+[sign]=-1                 ; Set to get contrast correct
+
+[nseg_total] = 0          ; Accumulator for total number segments
+
+; Get rid of existing files
+SYS
+rm -f [ctf2_file].dat
+SYS
+rm -f [invctf2_file].dat
+
+; ---- Calculate 1D CTF^2 for each micrograph  ----
+do [micro]=1,[nmicro]
+
+  ; Read defocus level
+  ud ic [micro], [nseg], [df_mu]
+    [infile]
+
+  [nseg_total] = [nseg_total] + [nseg];
+
+  ; Convert defocus to angstroms
+  [df_a]=[df_mu]*10000  
+
+  ; Calculate transfer function for micrograph
+  tf d
+    tfd{***[micro]}
+    ([cs])                           ;  Spherical aberration
+    ([df_a],[lambda])                ;  defocus, wavelength
+    ([dim])                          ;  dimension
+    ([max_freq])                     ;  maximum spatial frequency
+    ([source_size],[defocus_spread]) ;  source size, spread
+    ([astigmatism],[azimuth])        ;  astigmatism parameters
+    ([amplitude_contrast],[gauss])   ;  amp contrast, gauss envelope
+    d
+
+  ; Extract center row from transfer function  
+  li d
+    tfd{***[micro]}
+    line{***[micro]}
+    r
+    ([halfdim_p1])
+
+  ; Multiply row of transfer function by number of elements
+  do [i]=1,[dim]
+    ud [i],[value]
+      line{***[micro]}
+
+    [value]=[value]*[nseg]
+
+    sd [i],[value]
+      linescaled{***[micro]}
+  enddo
+ 
+  sd e
+    linescaled{***[micro]}
+
+enddo
+
+SYS
+echo
+
+; ---- Get sum over CTF^2 ----
+[avginv] = 0
+[avgcount] = 0
+
+do [i]=[halfdim_p1],[dim]             ; Loop over elements of 1D CTF^2
+  [accum] = 0.0;
+  do [micro]=1,[nmicro]
+    ud [i], [value]
+      linescaled{***[micro]}
+    [accum] = [accum] + [value]
+    ud e
+  enddo
+
+  [accum] = [accum] / [nseg_total]; Scale by total number of segments
+
+  ; Accumulate 1/ctf2 over range all freq where 1/[ctf2] < 5
+  if([accum].gt.0.2) then
+    [avginv] = [avginv] + 1.0/[accum]
+    [avgcount] = [avgcount] + 1
+  endif
+
+  [j]=[i]-[halfdim]
+  sd [j], [accum]
+    [ctf2_file]
+enddo
+
+[avginv] = [avginv]/[avgcount] ; Normalize by number of spatial frequency bins
+
+sd e
+  [ctf2_file]
+
+; ---- Calculate 1/CTF^2 with proper dimension ----
+[flag] = 0;
+do [i]=1,[halfdim]
+  ud ic [i],[ctf2]
+    [ctf2_file]
+  
+  [ctf2inv]=1.0/[ctf2]
+
+  ; Until we get to the point where the first 1/ctf2 values is greater
+  ; than the average over all spatial frequencies, replace by avg.
+  ; Avoids overweighting of low-frequency terms
+
+  if([flag].eq.0) then
+    if([ctf2inv].gt.[avginv]) then
+      sd [i],[avginv]
+        [invctf2_file]
+    else
+      [flag]=1
+      sd [i],[ctf2inv]
+        [invctf2_file]
+    endif
+  else
+    sd [i],[ctf2inv]
+      [invctf2_file]
+  endif
+
+enddo
+
+; ---- Cleanup temporary files ----
+do [micro]=1,[nmicro]
+  SYS
+  rm -f line{***[micro]}.dat
+  SYS
+  rm -f linescaled{***[micro]}.dat
+  SYS
+  rm -f tfd{***[micro]}.dat
+enddo
+
+en d

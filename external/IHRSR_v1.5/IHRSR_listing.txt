@@ -1,0 +1,82 @@
+List of programs in IHRSR_v1.5
+
+Note that all Spider scripts can be referenced using both the spd or
+spi extensions and Perl scripts can be called with or without the pl
+extension. Symbolic links are set as necessary.
+
+----- Spider scripts -----
+
+o apply_function.spd: Applies a function to an image; normally used to
+apply 1/CTF^2 to the final map
+
+o bob_helix.spd: This is the main helical reconstruction application and
+is based on Ed Egelman's IHRSR program. Make a copy of this file in
+the directory where you'll be working, give it a new name so that you
+don't accidentally access the original file in the SPPROC_DIR
+directory, and edit parameters at top of file.
+
+o center_tubes.spd: Center boxed tube segments
+
+o ctf_corr_noprompt.spd: Correct an image for CTF (version without
+user prompts)
+
+o ctf_corr.spd: Correct and image for CTF
+
+o filter.spd: Apply low/high pass filters to an image
+
+o get_tube_diameters.spd: Determine diameters of tube segment in an
+image stack
+
+o ipdlp.spd: invert, low pass, and decimate (bin) an image
+
+o pwstack.spd: Calculate power spectra of images in a stack
+
+o sort_by_diameter.spd: Sort images in a stack based on tube
+diameter. Used in conjunction with get_tube_diameters.spd
+
+o split_stack.spd: Split image stack into two stacks
+
+o mappw2.spd: Generate simulated power spectrum from map or projection
+of map
+
+----- Perl scripts -----
+
+o avg_pw2.pl: Calculate an averaged power spectrum from multiple power
+spectra
+
+o helix_automation.pl: For one or more images: convert image file to
+Spider format with correct byte-ordering, rename file to avoid
+multiple periods (Spider treats everything after first period as the
+extension), and generate 2D power spectrum.
+
+o helix_cutstk.pl: Generate a stack file of helix segments from a set
+of boxed helices
+
+o merge_stack.pl: Merge two or more image stacks into a single stack
+
+o multirun.pl: Launch multiple reconstructions
+
+----- Other programs -----
+
+o cplot: Contour plotting program
+
+o generator: GUI for generating IHRSR script. Can be used instead of
+manually editing bob_helix.spd, but does not take advantage of newest
+capabilities.
+
+o himpose: Impose helical symmetry on a structure. Recently modifed to
+generate long maps or projections of long maps by providing additional
+command line arguments. (called by bob_helix.spd)
+
+o himpose_long: Impose helical symmetry on a long structure. This
+program is provided solely for back-compatibility and functionality is
+now contained in himpose.
+
+o hplot: Histogram plotting program
+
+o hsearch_lorentz: Search for helical symmetry parameters (called by
+bob_helix.spd)
+
+o splot: Plot helical symmetry parameters as function of iteration
+
+o xhelicals: Interactive version of hsearch

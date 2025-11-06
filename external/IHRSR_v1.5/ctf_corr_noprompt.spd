@@ -1,0 +1,124 @@
+FR L
+<infile>/home/sinkovit/ctf_went_wrong/3545
+
+FR L
+<outfile>3545_corr         ; corrected image
+
+[pixel_size]=1.620         ; pixel size (Ang)
+[df_mu]=2.0                ; defocus (microns)
+[kv]=300                   ; voltage (kV)
+[ctype]=1                  ; 1=phase&amp, 2=phase only
+[sign]=-1                  ; sign (normally -1)
+
+; -----------------------------------------------------------------
+; ------------ Don't change anything below this point -------------
+; -----------------------------------------------------------------
+
+; Convert defocus to angstroms
+[df_a]=[df_mu]*10000  
+
+; Calculate wavelength from accelerating voltage
+[lambda] = 12.3/sqrt([kv]*1000 + 0.978*[kv]*[kv])
+
+; Calculate maximum spatial frequency (Nyquist)
+[max_freq] = 1.0/(2.0*[pixel_size])
+
+; Hardcoded parameters
+[cs]=2.2                  ; values appropriate for Sphera and Polara
+[source_size]=0.001       ; Set so that envelope function has no effect
+[defocus_spread]=1.0      ; ... ditto
+[astigmatism]=0.0         ; Assume stigmated image
+[azimuth]=0.0             ; ... ditto
+[amplitude_contrast]=0.05 ; Value appropriate for Sphera and Polara
+[gauss]=10000.0           ; Essentially disables Gauassian falloff
+
+if([ctype].ne.1) then
+  if([ctype].ne.2) then
+    SYS
+    echo "Correction type must be 1 or 2"
+    en d
+  endif
+endif
+
+fi x [nrow],[nsam]      ; Extract number of rows and pixels/row from image
+  <infile>@001          ;   image name
+  (2,12)                ;   nrow,nsam = header locations 2,12
+
+; Determine largest dimension
+if([nrow].gt.[nsam])then
+  [big]=[nrow]
+else
+  [big]=[nsam]
+endif
+
+; Set the transform / padded image size
+if([big].le.2048)then
+  [dim]=2048
+elseif([big].le.4096)then
+  [dim]=4096
+elseif([big].le.8192)then
+  [dim]=8192
+elseif([big].le.12288)then
+  [dim]=12288
+elseif([big].le.16384)then
+  [dim]=16384
+else
+  SYS
+  echo "Input image too large (dimension > 16384)"
+  en d
+endif
+
+if([ctype].eq.1) then
+  tf c                               ; Calculate CTF correction (phase&amp)
+    _5                               ;  CTF correction 
+    ([cs])                           ;  Spherical aberration
+    ([df_a],[lambda])                ;  defocus, wavelength
+    ([dim],[dim])                    ;  dimensions
+    ([max_freq])                     ;  maximum spatial frequency
+    ([source_size],[defocus_spread]) ;  source size, spread
+    ([astigmatism],[azimuth])        ;  astigmatism parameters
+    ([amplitude_contrast],[gauss])   ;  amp contrast, gauss envelope
+    ([sign])                         ;  sign
+endif
+
+if([ctype].eq.2) then
+  tf ct                              ; Calculate CTF correction (phase only)
+    _5                               ;  CTF correction 
+    ([cs])                           ;  Spherical aberration
+    ([df_a],[lambda])                ;  defocus, wavelength
+    ([dim])                          ;  dimensions
+    ([max_freq])                     ;  maximum spatial frequency
+    ([source_size],[defocus_spread]) ;  source size, spread
+    ([astigmatism],[azimuth])        ;  astigmatism parameters
+    ([amplitude_contrast])           ;  amp contrast, gauss envelope
+    ([sign])                         ;  sign
+endif
+
+pd                      ; Pad image
+  <infile>@001          ;   input image
+  _1                    ;   output image
+  ([dim],[dim],1)       ;   padded image size
+  b                     ;   set background to avg perimeter value
+  (1,1)                 ;   top left coordinates
+
+ft                      ; Calculate transform of image
+  _1                    ;   internal input file (defined above - real)
+  _2                    ;   transform (complex)
+
+mu                      ; Multiply transform by CTF
+  _2                    ;   transform
+  _5                    ;   CTF
+  _3                    ;   corrected transform
+  *
+
+ft                      ; Back transform
+  _3                    ;   corrected transform
+  _4                    ;   corrected real image
+
+wi                      ; Window image
+  _4                    ;   corrected image
+  <outfile>@001         ;   windowed corrected image
+  ([nsam],[nrow])       ;   output image size
+  (1,1)                 ;   top left corner
+
+en d

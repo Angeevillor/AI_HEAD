@@ -1,0 +1,47 @@
+; Script to sort out helices based on diameter 
+; Current hardcoded for two cases, choosing narrower
+; Suggestion - view histogram in graphics display to determine cutoffs
+; for helical families
+
+; Prompting user for input parameters
+FR                   
+? Input image stack ? [imgstack_in]
+FR                   
+? Output image stack containing boxes of desired width ? [imgstack_out]
+RR [dmin]
+? Minimum tube diameter (pixels) ?
+RR [dmax]
+? Maximum tube diameter (pixels) ?
+RR [nimg]
+? Number of images (enter 0 to use entire stack)?
+
+; Getting number of images in stack file
+if([nimg].gt.0) then
+  [count]=[nimg]
+else
+  fi x [count]
+    [imgstack_in]@
+    (26)
+endif
+
+
+VM                          ; remove old projection stack file
+rm -f [imgstack_out].dat
+
+[n]=0                       ; Initialize number of 'good' tubes
+do [i]=1,[count]            ; Loop over images in stack
+ud ic [i],[diam]            ;   Put data from key [i] into [diam]
+doc_peaks                   ;     using file doc_peaks.dat
+
+if([diam].lt.[dmax])then    ;   Identify helices w/ diameter < [dmax] pixels
+if([diam].gt.[dmin])then    ;     Identify helices w/ diameter > [dmin] pixels
+[n]=[n]+1                   ;       Increment number of 'good' tubes
+cp                          ;         Copy
+[imgstack_in]@{******[i]}   ;           image from imgstack_in
+[imgstack_out]@{******[n]}  ;           to imgstack_out
+endif
+endif
+
+enddo
+
+en d

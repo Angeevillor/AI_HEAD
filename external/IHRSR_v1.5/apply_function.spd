@@ -1,0 +1,32 @@
+; Apply filter to an image
+
+SYS
+echo "apply_function - apply function to an image"
+SYS
+echo "Typical usage would be to apply 1/CTF^2 to map"
+SYS
+echo ""
+
+; Prompting user for input parameters
+FR                   
+? Input image name ? [infile]
+FR                   
+? Output image name ? [outfile]
+FR                   
+? File containing tabulated function? [filter]
+
+ft                 ; Calculate transform of image
+  [infile]              
+  _1                    
+
+fd                 ; Apply filter to transform    
+  _1
+  _2
+  [filter]
+
+ft                 ; Back transform filtered image
+  _2
+  [outfile]
+
+
+en d

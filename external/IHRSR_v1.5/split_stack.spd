@@ -1,0 +1,41 @@
+; Script to split an image stack into two stacks
+
+; Prompting user for input parameters
+FR                   
+? Input image stack ? [imgstack_in]
+FR                   
+? Output image stack containing first half of images ? [imgstack_out1]
+FR                   
+? Output image stack containing second half of images ? [imgstack_out2]
+
+VM
+rm -f [imgstack_out1].dat
+VM
+rm -f [imgstack_out2].dat
+
+
+; Getting number of images in stack file
+fi x [count]
+  [imgstack_in]@
+  (26)
+
+[midpoint]=[count]/2
+
+[j]=0
+do [i]=1,[midpoint]
+  [j]=[j]+1
+  cp 
+  [imgstack_in]@{******[i]}
+  [imgstack_out1]@{******[j]}
+enddo
+
+[j]=0
+[start]=[midpoint]+1
+do [i]=[start],[count]
+  [j]=[j]+1
+  cp 
+  [imgstack_in]@{******[i]}
+  [imgstack_out2]@{******[j]}
+enddo
+
+en d

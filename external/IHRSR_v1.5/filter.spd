@@ -1,0 +1,23 @@
+; filter = Apply filter to a map
+
+; Prompting user for input parameters
+FR                   
+? Input map ? [map_in]
+FR                   
+? Output map ? [map_out]
+RR [pixel_size]
+? Pixel size ?
+RR [resolution]
+? Low pass filter resolution ? 
+RR [ftype]
+? Filter (1: lowpass, 2: high 3: gauss-low 4: gauss-high) ? 
+
+[filter_radius]=[pixel_size]/[resolution]
+
+fq                         ;   Fourier filter (low pass)
+  [map_in]                   ;     input map
+  [map_out]                  ;     output map
+  [ftype]                   ;      filter type
+  ([filter_radius])          ;     filter radius 1/pix
+
+en d

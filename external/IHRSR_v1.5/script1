@@ -1,0 +1,130 @@
+; x31=number of input images 
+; x32 = angular increment for projections (in degrees)
+; x33 = number of reference projections [=360/x32 for no point group symmetry, =360/(n*x32) for symmetry]
+; x34 = number of cycles
+; x35 = image dimension (must be square, nx=ny) 
+; x36 = search range (pixels) in AP NQ
+; x37 = maximum ring (pixels) in AP NQ
+; x38 = 1 for point group symmetry, = 0 for no point group symmetry
+; x44 = maximum allowed in-plane angular deviation from 0 or 180 degrees  
+
+MD
+VB OFF
+md
+set mp
+0
+;
+vm
+rm -f angleprojdoc
+;
+x87=90.
+do lb77 x11=1,x33
+x88=(x11-1.)*x32
+sd x11,x87,x87,x88
+angleprojdoc
+lb77
+;
+;now iterate, starting with projection of previous 3D reconstruction 
+;
+do lb50 x77 = 2, x34
+;
+x76=x77-1
+;
+pj 3q
+volume{***x76}
+(x35-1)
+(1-x33)
+angleprojdoc
+refproj@***
+;
+;
+ap nq
+refproj@***
+(1-x33)
+(x36,1)
+(1,x37)
+<image_stack>@*****
+(1-x31)
+fparamzds+{***x77}
+;
+sd e
+fparamzds+{***x77}
+;
+;now eliminate bad ones 
+x90=0
+DO LB11 x55=1,x31 
+;x21=most similar proj
+;x22=cc 
+;x23=rotation 
+;x24=xshift
+;x25=yshift
+UD IC,X55,X21,X22,X23,X24,X25,X26
+fparamzds+{***x77}
+;now get rid of bad ones
+;look at rotations 
+if(x23.gt.360)x23 = x23 -360.
+if(x23.lt.0)x23 = 360. + x23
+if(x23.lt.(180.-x44))then
+if(x23.gt.x44)goto lb11
+endif
+if(x23.gt.(180.+x44))then
+if(x23.lt.(360.-x44))goto lb11
+endif
+;now we are left with good ones! 
+x90=x90+1
+sd X90,X21,X22,X23,X24,X25,X90
+fgoodparamzds+{***x77}
+;apply shifts 
+RT SQ
+<image_stack>@{*****x26}
+newboxes@{*****x90}
+X23
+X24,X25
+; x21 will be most similar projection
+x87=0.0 
+x86=(x21-1.)*x32
+sd x90,x87,x86,x87
+fangles{***x77}
+LB11
+;
+ud ice
+fparamzds+{***x77}
+;
+sd e
+fangles{***x77}
+;
+sd e
+fgoodparamzds+{***x77}
+;
+; now reconstruct
+; x52=number of input images, x88 is number of images used for BP 
+ud n,x88,x89
+fangles{***x77}
+sd e
+fangles{***x77}
+;
+IF(x38.eq.0)THEN
+;
+bp 3f
+newboxes@*****
+(1-x88)
+fangles{***x77}
+*
+ftzdsk{***x77}
+;
+ELSE
+;
+bp 3f
+newboxes@*****
+(1-x88)
+fangles{***x77}
+angsym
+ftzdsk{***x77}
+;
+ENDIF
+;
+;
+;
+;now the hard part, impose helical symmetry on threed***
+; phistart, zstart (initial guesses at symmetry) 
+;

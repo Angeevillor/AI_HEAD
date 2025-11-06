@@ -1,0 +1,95 @@
+; Generate 1-d density profiles - later used to estimate radii
+; (1) Apply lowpass filter to an image stack
+; (2) Invert contrast
+; (3) Collapse down to-dimension
+
+; Prompting user for input parameters
+FR                   
+? Input image stack ? [imgstack]
+RR [pixel_size]
+? Pixel size ?
+RR [resolution]
+? Low pass filter resolution ?
+RR [nimg]
+? Number of images (enter 0 to use entire stack)?
+
+[nyquist]=2.0*[pixel_size]
+if([resolution].lt.[nyquist]) then
+  SYS
+  echo ''
+  SYS
+  echo 'ERROR - Low pass resolution < twice pixel size (Nyquist)'
+  SYS
+  echo ''
+  en d
+endif
+
+[filter_radius]=[pixel_size]/[resolution]
+
+; Getting number of images in stack file
+if([nimg].gt.0) then
+  [count]=[nimg]
+else
+  fi x [count]
+    [imgstack]@
+    (26)
+endif
+
+
+SYS                      ; delete existing doc_peaks document
+rm -f doc_peaks.dat
+
+do [i]=1,[count]        ; Loop over images in stack
+
+fq                      ; Fourier filter
+[imgstack]@{******[i]}  ;   name of input file
+_1                      ;   internal output file
+(1)                     ;   apply lowpass filter
+([filter_radius])       ;   filter radius in 1/pix 
+
+ar                      ; Arithmetic function
+_1                      ;   input file (defined above)
+_2                      ;   internal output file
+(-1.*p1)                ;   invert contrast of _1 and store in _2
+
+fi x [nrow],[nsam]      ; Extract number of rows and pixels/row from image
+[imgstack]@{******[i]}  ;   image name
+(2,12)                  ;   nrow,nsam = header locations 2,12
+
+dc s                    ; Decimate image (what we call binning)
+_2                      ;   input file (defined above)
+_3 ;                    ;   internal output file
+(1,[nrow])              ;   collapse down do one dimension
+
+[centery]=([nsam]/2)+1  ; Calculate top left coordinate in y-dimension
+
+pd                      ;  Pad 1d image out to 2d (pk d can't handle 1d data)
+_3                      ;    Input file (defined above)
+_4                      ;    Internal output file
+([nsam],[nsam],1)       ;    Size of padded images
+m                       ;    Set background equal to minimum density
+(1,[centery])           ;    Top left coordinates
+
+pk d                    ;  Peak search - output to document file
+_4                      ;    input file (defined above)
+(2,0)                   ;    look for 2 peaks: center origin override disabled
+temp_doc                ;    name of document file
+
+ud 1,x21                ;  Unsave (i.e. read or get) register 1 into x21 
+temp_doc                ;    from file temp_doc
+ud 2,x22                ;  Unsave (i.e. read or get) register 2 into x21 
+temp_doc                ;    from file temp_doc
+
+[d]=abs(x21)+abs(x22)   ;  Sum the locations of the two peaks (why?)
+
+ud e                    ;  Terminate access to current document file
+
+SYS                      ;  Remove temporary file
+rm -f temp_doc.dat
+
+sd [i],[d]              ;  Save registers [i] (stack number) [d] (diameter)
+doc_peaks               ;     to the document file doc_peaks
+
+enddo
+
+en d

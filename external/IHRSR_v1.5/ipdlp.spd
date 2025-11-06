@@ -1,0 +1,108 @@
+; ipdlp = Invert Pad Decimate Low Pass an image stack
+
+; Prompting user for input parameters
+FR                   
+? Input image stack ? [imgstack_in]
+FR                   
+? Output image stack ? [imgstack_out]
+RR [pixel_size]
+? Pixel size ?
+RR [rtmp]
+? Low pass filter resolution (enter 0 to skip filtering) ?
+RR [pad_box]
+? Padded box size (before decimation) ?
+RR [bin]
+? Binning/decimation factor ?
+RR [nimg]
+? Number of images (enter 0 to use entire stack)?
+
+; For some unknown reason, must copy input parameter into another
+; variable before using in denominator if parameter contains a decimal
+; point
+
+[resolution]=[rtmp]
+
+if([resolution].eq.0.0)then
+  [filter_radius]=0.0
+else
+  [filter_radius]=[bin]*[pixel_size]/[resolution]
+endif
+
+; Getting number of images in stack file
+if([nimg].gt.0) then
+  [count]=[nimg]
+else
+  fi x [count]
+    [imgstack_in]@
+    (26)
+endif
+
+
+SYS                         ; remove old stack file
+rm -f [imgstack_out].dat
+
+do [i]=1,[count]           ; Loop over images in stack
+
+fi x [nrow],[nsam]         ; Extract number of rows and pixels/row from image
+[imgstack_in]@{******[i]}  ;   image name
+(2,12)                     ;   nrow,nsam = header locations 2,12
+
+; Determine largest tube dimension
+if([nrow].gt.[nsam])then
+[big]=[nrow]
+else
+[big]=[nsam]
+endif
+
+; Make sure that padded box size is sufficiently large
+if([big].gt.[pad_box])then
+SYS
+echo ''
+SYS
+echo 'ERROR - Padded box size smaller that tube dimension'
+en d
+endif
+
+; Calculate top left corner of tube
+[tlx]=([pad_box]-[nsam])/2+1
+[tly]=([pad_box]-[nrow])/2+1
+
+ar                         ;   Arithmetic operation (invert)
+[imgstack_in]@{******[i]}  ;     Input file
+_1                         ;     Internal output file
+(-1.*p1)                   ;     Invert image and store into _1
+
+pd                         ;   Pad image
+_1                         ;     internal input file (defined above)
+_2                         ;     internal output file
+([pad_box],[pad_box],1)    ;     padded image size
+b                          ;     set background to avg perimeter value
+([tlx],[tly])              ;     top left coordinates
+
+if([bin].gt.1) then
+  dc s                       ;   Decimate image
+  _2                         ;     input file (defined above)
+  _3                         ;     output file
+  ([bin],[bin])              ;     bin X bin decimation of data
+else
+  cp                         ;   Copy to _3 without binning
+  _2
+  _3
+endif
+
+
+if([filter_radius].eq.0.0)then
+  cp                         ;   Copy decimated image to new stack
+  _3                         ;     decimated image
+  [imgstack_out]@{******[i]} ;     output file
+else
+  fq                         ;   Fourier filter (low pass)
+  _3                         ;     input file (defined above)
+  [imgstack_out]@{******[i]} ;     output file
+  (1)                        ;     apply lowpass filter
+  ([filter_radius])          ;     filter radius 1/pix
+endif
+
+enddo
+
+en d
