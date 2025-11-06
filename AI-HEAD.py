@@ -181,6 +181,9 @@ def main():
 
     Cut_parser=subs.add_parser('Cut_tubes')
 
+    Cut_parser.add_argument('Star_file',widget="FileChooser",
+                                   help='Please input the path of starfile')
+
     Cut_parser.add_argument('Tubes',widget="DirChooser",
                                    help='Please input the dir of tubes')
     Cut_parser.add_argument('Box_size',
@@ -586,7 +589,7 @@ def main():
         
         save_path="Helix_parameter/{}/".format(str(dic["Save file name"]))
 
-        config_keys=["command","The_first_basis_vector_coordinates","The_second_basis_vector_coordinates""Log_File_name"]
+        config_keys=["command","The_first_basis_vector_coordinates","The_second_basis_vector_coordinates","Log_File_name"]
         values=[dic[key] for key in dic.keys()]
 
         with open("./Helix_parameter/{}/helix_parameter_config.txt".format(str(dic["Save file name"])),"w+") as f:
@@ -970,14 +973,19 @@ def main():
             Angle=df_data['rlnDefocusAngle'].to_numpy()
 
             print("Conducting Pre-mutiply CTF to micrographs according the star file...")
+            
             n=10
+
             for i in range(0,len(img_list),n):
+
                 img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
                 img_name_split=img_name[i:i+n]
                 M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False).to(calculate_device)
                 f_img=torch.fft.rfftn(img_stack,dim=(-2,-1))
+                # f_ctfm=f_img*torch.sign(M_ctf)
                 f_ctfm=f_img*M_ctf
                 ctfm_img=torch.fft.irfftn(f_ctfm,dim=(-2,-1)).cpu()
+
                 for m in range(len(img_name_split)):
                     with mrcfile.new(f"{ctfm_path}/{img_name_split[m]}",overwrite=True) as mrc:
                         mrc.set_data(ctfm_img[m].numpy())
@@ -1012,7 +1020,9 @@ def main():
 
                 print("Cutting tubes into particles...")
 
-                Extract.extract_particles(tube_path,box_size,step,particle_path,True)
+                Extract.extract_particles(tube_path,box_size,step,particle_path,invert=True)
+
+                Extract.write_metadata(dic["Star_file"],particle_path,angpix,particle_path)
         
         else:
 
@@ -1031,6 +1041,8 @@ def main():
             else:
                 os.mkdir(particle_path)
 
+            print("Extarcting tubes from the micrographs...")
+
             Extract.extract_tubes(img_dir,coord_dir,box_size,tube_path,angpix)
 
             if dic["Extract_options"]=="Yes":
@@ -1039,7 +1051,9 @@ def main():
 
             else:
 
-                Extract.extract_particles(tube_path,box_size,step,particle_path,True)
+                Extract.extract_particles(tube_path,box_size,step,particle_path,invert=True)
+
+                Extract.write_metadata(dic["Star_file"],particle_path,angpix,particle_path)
     
     elif dic["command"] == 'Cut_tubes':
 
@@ -1054,7 +1068,7 @@ def main():
         else:
             os.mkdir('./Cut_tubes/{}'.format(str(dic['Log File name'])))
         
-        config_keys=["command","Tubes","Box_size","Step","Pixel_size","Invert_options","Average_options","Log_File_name"]
+        config_keys=["command","Star_file","Tubes","Box_size","Step","Pixel_size","Invert_options","Average_options","Log_File_name"]
         values=[dic[key] for key in dic.keys()]
 
         with open('./Cut_tubes/{}/Cut_config.txt'.format(str(dic['Log File name'])),"w+") as f:
@@ -1098,6 +1112,8 @@ def main():
 
 
         Extract.extract_particles(tube_path,box_size,step,particle_path,invert_option,Average_option)
+
+        Extract.write_metadata(dic["Star_file"],particle_path,angpix,particle_path)
 
 
     elif dic["command"]=="Diameter_classification":

@@ -470,6 +470,8 @@ if __name__ =="__main__":
                 print("Cutting tubes into particles...")
 
                 Extract.extract_particles(tube_path,box_size,step,particle_path,True)
+
+                Extract.write_metadata(config_dic["Star_file"],particle_path,angpix,particle_path)
         
         else:
 
@@ -497,6 +499,8 @@ if __name__ =="__main__":
             else:
 
                 Extract.extract_particles(tube_path,box_size,step,particle_path,True)
+
+                Extract.write_metadata(config_dic["Star_file"],particle_path,angpix,particle_path)
     
     elif config_dic["command"] == 'Cut_tubes':
 
@@ -550,6 +554,8 @@ if __name__ =="__main__":
 
 
         Extract.extract_particles(tube_path,box_size,step,particle_path,invert_option,Average_option)
+
+        Extract.write_metadata(config_dic["Star_file"],particle_path,angpix,particle_path)
     
 
     elif config_dic["command"]=="Diameter_classification":
