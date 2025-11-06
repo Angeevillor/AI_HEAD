@@ -5,6 +5,7 @@ import torch
 import torch.nn.functional as F
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
 
 
 def calculate_diameter(tube_path,save_path):
@@ -50,11 +51,12 @@ def reclassication(diameter_file,save_path,n_class=8):
 
     df["class"]=pd.cut(df["out_diameter"],bins=n_class,labels=[f"class{i}" for i in range(n_class)])
     
-    grouped =df.groupby("class")
+    grouped =df.groupby("class",observed=False)
 
     labels=[f"class{i}" for i in range(n_class)]
     
     df.to_csv(f"{save_path}/reclassification.csv")
+
 
     for i in range(n_class):
     
@@ -71,13 +73,38 @@ def reclassication(diameter_file,save_path,n_class=8):
           single_part=grouped.get_group(labels[i])
   
           tube_list=single_part["tube_name"].to_list()
-  
+
+
           for j in range(len(tube_list)):
   
               os.system(f"ln -s {tube_list[j]} {save_path}/class{i}")
+
         except:
         
           pass
+
+
+    series=df['class'].value_counts()
+
+    bars=plt.bar(series.index,series.values)
+
+
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height}',
+                ha='center', va='bottom')
+
+    plt.title("Diameter_distribution")
+    plt.savefig(f"{save_path}/Diameter_distribution.png")
+        
+    df_describe=pd.DataFrame()
+
+    df_describe["class_lable"]=series.index
+    df_describe["class_number"]=series.values
+
+    df_describe.to_csv(f"{save_path}/classes_information.csv")
+
 
 
 def get_avg_pw(tube_path,tube_length,pad,step,gpu_id,save_path):
@@ -117,17 +144,22 @@ def get_avg_pw(tube_path,tube_length,pad,step,gpu_id,save_path):
 
             stack=torch.cat(stack,dim=0)
 
+            edge_side_mean=torch.mean((stack[:,0]+stack[:,-1])/2)
+            edge_top_mean=torch.mean((stack[0]+stack[-1])/2)
+
+            edge_mean=(edge_side_mean+edge_top_mean)/2
+
             pad_length=(pad-stack.shape[-1])//2
             pad_width=(pad-stack.shape[-2])//2
 
-            pad_stack=F.pad(stack,[pad_length,pad_length,pad_width,pad_width])
+            pad_stack=F.pad(stack,[pad_length,pad_length,pad_width,pad_width],value=edge_mean)
 
             split_stack=torch.split(pad_stack,30)
 
             for m in range(len(split_stack)):
 
                 pw=abs(torch.fft.fftn(split_stack[m].to(calculate_device),dim=(-2,-1)))**2
-                avg_pw=torch.fft.fftshift(torch.log(pw),dim=(-2,-1)).sum(dim=0)
+                avg_pw=torch.fft.fftshift(torch.log1p(pw),dim=(-2,-1)).sum(dim=0)
                 sum_pw+=avg_pw.cpu()
         else:
 

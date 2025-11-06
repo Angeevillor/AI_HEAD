@@ -8,7 +8,10 @@ def generate_ihrsr_script(particle_num,angular_step,Cnsym,iter,box_size,search_r
     else: 
         has_sym=1
         ref_projection_num=360/(angular_step*n)
-    particle_stack=particle_stack.strip(".spi")
+
+
+    particle_stack=particle_stack.split(".spi")[0]
+
 
     if out_of_plane_tilt_range==0:
 

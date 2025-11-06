@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 import os
 import glob
 import sys
+import starfile
+import pandas as pd
+from alive_progress import alive_bar
+
 sys.path.append(os.environ['AI_HEAD_LIB_PATH'])
 
 
@@ -42,61 +46,81 @@ def extract_tubes(M_dir,coord_dir,width,save_path,angpix=1):
     coord_list=sorted(glob.glob(f"{coord_dir}/*boxes.txt"))
     name_list=[os.path.basename(i).split("_boxes.txt")[0] for i in coord_list]
 
+
     M_list=[f"{M_dir}/{name}.mrc" for name in name_list]
 
     for j in range(len(coord_list)):
-    
-        try:
 
-          coord=torch.tensor(np.loadtxt(coord_list[j],delimiter="\t")).float()
-          
-        except:
-          
-          coord=torch.tensor(np.loadtxt(coord_list[j],delimiter=" ")).float()
-          
-        coord[:,0:2]+=coord[:,2:4]//2
-
-        line_coord=coord[:,:2]
-
-        line_coord=einops.rearrange(line_coord,"(n y) x -> n y x",y=2)
-        vector=line_coord[:,1]-line_coord[:,0]
-
-        angle_sign=-1*torch.sign(vector[:,0])
-
-        center_coord=(line_coord[:,1]+line_coord[:,0])//2
-        length=torch.linalg.norm(vector,dim=-1).int()
+        if os.path.exists(M_list[j]):
 
 
-        angle=torch.arccos(vector[:,1]/length)
-        angle*=angle_sign
+            try:
 
-        M=einops.rearrange(transform_matrix2d(angle),"n y x -> n 1 1 y x")
-        pic=torch.tensor(mrcfile.read(M_list[j]))
+                coord=torch.tensor(np.loadtxt(coord_list[j],delimiter="\t")).float()
+            
+            except:
+            
+                coord=torch.tensor(np.loadtxt(coord_list[j],delimiter=" ")).float()
 
-        for i in range(length.shape[0]):
+            if coord.shape[0]>=2:
 
-            grid=coordinate_grid((length[i],width),torch.tensor((length[i],width))//2)
+                
+                coord[:,0:2]+=coord[:,2:4]//2
 
-            grid=torch.flip(grid,dims=(-1,))
-            unrotate_grid=grid.unsqueeze(-1)
-            rotate_grid=(M[i]@unrotate_grid).squeeze(-1)
-            rotate_grid+=center_coord[i]
+                line_coord=coord[:,:2]
 
-            rotate_grid=torch.flip(rotate_grid,dims=(-1,))
+                line_coord=einops.rearrange(line_coord,"(n y) x -> n y x",y=2)
+                vector=line_coord[:,1]-line_coord[:,0]
 
-            sample=sample_image_2d(pic,rotate_grid)
+                angle_sign=-1*torch.sign(vector[:,0])
 
-            with mrcfile.new(f"{save_path}/{name_list[j]}_helix_{i}.mrc",overwrite=True) as mrc:
+                center_coord=(line_coord[:,1]+line_coord[:,0])//2
+                length=torch.linalg.norm(vector,dim=-1).int()
 
-                mrc.set_data(sample.numpy())
-                mrc.voxel_size=angpix
 
-        print(f"{j+1}/{len(coord_list)} has been finished!")
+                angle=torch.arccos(vector[:,1]/length)
+                angle*=angle_sign
+
+                M=einops.rearrange(transform_matrix2d(angle),"n y x -> n 1 1 y x")
+                pic=torch.tensor(mrcfile.read(M_list[j]))
+
+                for i in range(length.shape[0]):
+
+                    grid=coordinate_grid((length[i],width),torch.tensor((length[i],width))//2)
+
+                    grid=torch.flip(grid,dims=(-1,))
+                    unrotate_grid=grid.unsqueeze(-1)
+                    rotate_grid=(M[i]@unrotate_grid).squeeze(-1)
+                    rotate_grid+=center_coord[i]
+
+                    rotate_grid=torch.flip(rotate_grid,dims=(-1,))
+
+                    sample=sample_image_2d(pic,rotate_grid)
+                    
+                    sample=torch.nan_to_num(sample)
+
+                    with mrcfile.new(f"{save_path}/{name_list[j]}_helix_{i}.mrc",overwrite=True) as mrc:
+
+                        mrc.set_data(sample.numpy())
+                        mrc.voxel_size=angpix
+
+                print(f"{j+1}/{len(coord_list)} has been finished!")
+            
+            else:
+
+                print("Invalid coordinate file")
+
+
+        else:
+
+            print(f"{M_list[j]} is not existed!")
+            
+
 
 def extract_particles(tube_path,box_size,step,save_path,invert,avg=False):
 
     tube_list=glob.glob(f"{tube_path}/*.mrc")
-    name_list=[os.path.basename(i) for i in tube_list]
+    name_list=[os.path.basename(i).replace(".mrc",".mrcs") for i in tube_list]
     
     for j in range(len(tube_list)):
         i=0
@@ -144,3 +168,55 @@ def extract_particles(tube_path,box_size,step,save_path,invert,avg=False):
         else:
 
             pass
+
+
+def write_metadata(micrograph_meta,particle_path,apix,save_path):
+
+    df=starfile.read(micrograph_meta)
+    df_optics=df["optics"]
+    df_M=df["micrographs"]
+
+    particle_list=sorted(glob.glob(f"{particle_path}/*.mrcs"))
+    particle_meta=[]
+
+    with alive_bar(
+            len(particle_list),
+                    title=f"writing particles metadata...", 
+                    bar="squares"
+                    ) as bar:
+
+        for i in range(len(particle_list)):
+
+            particle_key=os.path.basename(particle_list[i]).split("_helix")[0]
+            header=mrcfile.open(particle_list[i],header_only=True).header
+
+            
+            nz=int(header.nz)
+            nx=int(header.nx)
+
+            df_meta=df_M[df_M["rlnMicrographName"].str.contains(particle_key)]
+
+            repeat_df_meta=pd.concat([df_meta]*nz)
+
+            particle_name=[f"{j:06}@{particle_list[i]}" for j in range(nz)]
+            repeat_df_meta["rlnImageName"]=particle_name
+            repeat_df_meta["rlnAngleRot"]=0
+            repeat_df_meta["rlnAngleTilt"]=90
+            repeat_df_meta["rlnAnglePsi"]=0
+            repeat_df_meta["rlnCtfBfactor"]=0
+            repeat_df_meta["rlnCtfScalefactor"]=1
+            repeat_df_meta["rlnPhaseShift"]=0
+            particle_meta.append(repeat_df_meta)
+
+            bar()
+
+
+    df_particles=pd.concat(particle_meta)
+    df_optics["rlnImagePixelSize"]=apix
+    df_optics["rlnImageSize"]=nx
+    df_optics["rlnImageDimensionality"]=2
+    df_optics["rlnCtfDataAreCtfPremultiplied"]=1
+    dic={"optics":df_optics,"particles":df_particles}
+
+
+    starfile.write(dic,f"{save_path}/particles.star")
