@@ -210,7 +210,6 @@ def run(img,center_x,center_y,magnitude_spectrum,nums,r,pixel_num,pixel_size,fil
             image = image.convert('RGB')
             image.save("./Basic_vector_coordinate/diffraction_pattern.png")
             with open('./Basic_vector_coordinate/values.txt', 'a') as f:
-                # 打印提示信息
                 print('Image and values saved.')
                 print('Zoom:', s_zoom.val,file=f,flush=True)
                 print('Contrast:', s_contrast.val,file=f,flush=True)

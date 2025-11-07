@@ -120,52 +120,53 @@ def get_avg_pw(tube_path,tube_length,pad,step,gpu_id,save_path):
 
         calculate_device="cpu"
     
-
-    for j in range(len(tube_list)):
-        i=0
-        stack=[]
-        tube=torch.tensor(mrcfile.read(tube_list[j]))    
-        
-        while True: 
-            
-            stack_i=tube[i:tube_length+i].unsqueeze(0)
-            cut_length=stack_i.shape[1]
-
-            if cut_length<tube_length:
-
-                break
-
-            else:
-
-                stack.append(stack_i)
-                i+=step
-
-        if len(stack)>1:
-
-            stack=torch.cat(stack,dim=0)
-
-            edge_side_mean=torch.mean((stack[:,0]+stack[:,-1])/2)
-            edge_top_mean=torch.mean((stack[0]+stack[-1])/2)
-
-            edge_mean=(edge_side_mean+edge_top_mean)/2
-
-            pad_length=(pad-stack.shape[-1])//2
-            pad_width=(pad-stack.shape[-2])//2
-
-            pad_stack=F.pad(stack,[pad_length,pad_length,pad_width,pad_width],value=edge_mean)
-
-            split_stack=torch.split(pad_stack,30)
-
-            for m in range(len(split_stack)):
-
-                pw=abs(torch.fft.fftn(split_stack[m].to(calculate_device),dim=(-2,-1)))**2
-                avg_pw=torch.fft.fftshift(torch.log1p(pw),dim=(-2,-1)).sum(dim=0)
-                sum_pw+=avg_pw.cpu()
-        else:
-
-            pass
-            
-        print(f"{j+1}/{len(tube_list)} finished!")
+    with open(f"{save_path}/run.out","a+") as f:
+    
+      for j in range(len(tube_list)):
+          i=0
+          stack=[]
+          tube=torch.tensor(mrcfile.read(tube_list[j]))    
+          
+          while True: 
+              
+              stack_i=tube[i:tube_length+i].unsqueeze(0)
+              cut_length=stack_i.shape[1]
+  
+              if cut_length<tube_length:
+  
+                  break
+  
+              else:
+  
+                  stack.append(stack_i)
+                  i+=step
+  
+          if len(stack)>1:
+  
+              stack=torch.cat(stack,dim=0)
+  
+              edge_side_mean=torch.mean((stack[:,0]+stack[:,-1])/2)
+              edge_top_mean=torch.mean((stack[0]+stack[-1])/2)
+  
+              edge_mean=(edge_side_mean+edge_top_mean)/2
+  
+              pad_length=(pad-stack.shape[-1])//2
+              pad_width=(pad-stack.shape[-2])//2
+  
+              pad_stack=F.pad(stack,[pad_length,pad_length,pad_width,pad_width],value=edge_mean)
+  
+              split_stack=torch.split(pad_stack,30)
+  
+              for m in range(len(split_stack)):
+  
+                  pw=abs(torch.fft.fftn(split_stack[m].to(calculate_device),dim=(-2,-1)))**2
+                  avg_pw=torch.fft.fftshift(torch.log1p(pw),dim=(-2,-1)).sum(dim=0)
+                  sum_pw+=avg_pw.cpu()
+          else:
+  
+              pass
+              
+          print(f"{j+1}/{len(tube_list)} finished!",flush=True,file=f)
             
     
 
