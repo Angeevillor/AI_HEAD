@@ -1,3 +1,9 @@
+Interface:
+===
+**AI-HEAD**: **A**uto-**i**ndexing for **He**lical **a**ssembles’ **d**iffraction and structure determination
+
+![image](Graphical_Interface.png)
+
 Installation:
 ===
 **By mamba/conda (recommanded)**
@@ -75,6 +81,7 @@ External_programs:
 SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
 
 IHRSR program could be got at /external
+
 
 
 
