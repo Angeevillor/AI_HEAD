@@ -58,6 +58,8 @@ AI-HEAD provides a very friendly graphical interface. Once the operating environ
 
 **Examples:**
 ```
+mamba activate AI_HEAD
+
 source AI_HEAD_ENV.sh
 
 source IHRSR_ENV.sh
@@ -66,6 +68,8 @@ AI-HEAD.py
 ```
 **Additionally, we have launched AI-HEAD in commandline version:**
 ```
+mamba activate AI_HEAD
+
 source AI_HEAD_ENV.sh
 
 source IHRSR_ENV.sh
@@ -81,6 +85,7 @@ External_programs:
 SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
 
 IHRSR program could be got at /external
+
 
 
 
