@@ -385,6 +385,7 @@ if __name__ =="__main__":
         ctfm_path=f"{path}/ctfm_Micrograhs"
         tube_path=f"{path}/Tube"
         particle_path=f"{path}/Particles"
+        batch_size=int(config_dic["Batch"])
 
 
         if config_dic["CTF_multiply"]=="Yes":
@@ -427,7 +428,7 @@ if __name__ =="__main__":
             Angle=df_data['rlnDefocusAngle'].to_numpy()
 
             print("Conducting Pre-multiply CTF to micrographs according the star file...")
-            n=10
+            n=batch_size
             for i in range(0,len(img_list),n):
                 img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
                 img_name_split=img_name[i:i+n]

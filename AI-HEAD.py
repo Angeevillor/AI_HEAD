@@ -174,7 +174,9 @@ def main():
     extract_parser.add_argument('Extract_options',
                               help='Just extract tubes?',choices=["Yes","No"],default="No")
     extract_parser.add_argument('--GPU',
-                              help='Please set the device id of GPU if you want to use gpu-acceleration during CTF-mutiply, only single GPU supported.')
+                              help='Please set the device id of GPU if you want to use gpu-acceleration during CTF pre-multiply, only single GPU supported.')
+    extract_parser.add_argument('--Batch',
+                              help='Please set the batch size of processing during CTF pre-multiply.',default=10)
     extract_parser.add_argument('Log File name',
                               help='Please enter the Log File name')
 
@@ -267,17 +269,17 @@ def main():
     IHRSR_parser.add_argument('Box_size',
                               help='Please input the pixel size of initial model')                           
     IHRSR_parser.add_argument('Angular_step',
-                              help='Please input the angular step for generating the projections',default=2)
+                              help='Please input the angular step for generating the projections',default=4)
     IHRSR_parser.add_argument('Iteration',
                               help='Set the number of iterations',default=30)
     IHRSR_parser.add_argument('Serach_range',
                               help='Set the serach range between each resolution',default=5)
     IHRSR_parser.add_argument('Max_Serach_range',
-                              help='Set the Max serach range, this value should be smaller than (box_size/2)-serach_range',default=38)
+                              help='Set the Max serach range, this value should be smaller than (box_size/2)-serach_range',default=24)
     IHRSR_parser.add_argument('Inplane_angular',
                               help='Set the inplane_angular deviation',default=3)
     IHRSR_parser.add_argument('Out_of_plane_tilt_range',
-                              help='Set the search range of the out of plane tilt',default=0)
+                              help='Set the search range of the out of plane tilt',default=20)
     IHRSR_parser.add_argument('Cores',
                               help='Set the number of cores to conduct the IHRSR',default=32)
     IHRSR_parser.add_argument('Inner_radius',
@@ -873,7 +875,7 @@ def main():
             PZ=data_list[-3]
             Z=data_list[-2]
             point_dic_2=sort_diffraction.shift_lattice(img,int(dic["Diffraction region"]),X,PZ,Z,int(dic["Shift number"]))
-            print(point_dic_2)
+            #print(point_dic_2)
             num=point_dic_2["step"]
             n=point_dic_2["shift"]
             size = 3
@@ -932,6 +934,7 @@ def main():
         ctfm_path=f"{path}/ctfm_Micrograhs"
         tube_path=f"{path}/Tube"
         particle_path=f"{path}/Particles"
+        batch_size=int(dic["Batch"])
 
         if dic["CTF_multiply"]=="Yes":
 
@@ -971,26 +974,30 @@ def main():
             defocus=(defocus_data[:,0]+defocus_data[:,1])/20000
             Ast=df_data["rlnCtfAstigmatism"].to_numpy()/20000
             Angle=df_data['rlnDefocusAngle'].to_numpy()
-
+            
+            
+            print("You could check run.out in the corresponding folder to obtain the log results")            
             print("Conducting Pre-mutiply CTF to micrographs according the star file...")
             
-            n=10
+            n=batch_size
+            
+            with open(f"{save_path}/run.out","a+") as f:
 
-            for i in range(0,len(img_list),n):
-
-                img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
-                img_name_split=img_name[i:i+n]
-                M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False).to(calculate_device)
-                f_img=torch.fft.rfftn(img_stack,dim=(-2,-1))
-                # f_ctfm=f_img*torch.sign(M_ctf)
-                f_ctfm=f_img*M_ctf
-                ctfm_img=torch.fft.irfftn(f_ctfm,dim=(-2,-1)).cpu()
-
-                for m in range(len(img_name_split)):
-                    with mrcfile.new(f"{ctfm_path}/{img_name_split[m]}",overwrite=True) as mrc:
-                        mrc.set_data(ctfm_img[m].numpy())
-                        mrc.voxel_size=(apix,apix,0)
-                print(f"{i+len(img_name_split)}/{len(img_list)} has been pre-multiplied!")
+              for i in range(0,len(img_list),n):
+  
+                  img_stack=torch.cat([torch.tensor(mrcfile.read(j)).unsqueeze(0) for j in img_list[i:i+n]],dim=0).to(calculate_device)
+                  img_name_split=img_name[i:i+n]
+                  M_ctf=calculate_ctf(defocus[i:i+n],Ast[i:i+n],Angle[i:i+n],Voltage,Cs,Ac,0,0,apix,img_stack.shape[-2:],True,False).to(calculate_device)
+                  f_img=torch.fft.rfftn(img_stack,dim=(-2,-1))
+                  # f_ctfm=f_img*torch.sign(M_ctf)
+                  f_ctfm=f_img*M_ctf
+                  ctfm_img=torch.fft.irfftn(f_ctfm,dim=(-2,-1)).cpu()
+  
+                  for m in range(len(img_name_split)):
+                      with mrcfile.new(f"{ctfm_path}/{img_name_split[m]}",overwrite=True) as mrc:
+                          mrc.set_data(ctfm_img[m].numpy())
+                          mrc.voxel_size=(apix,apix,0)
+                  print(f"{i+len(img_name_split)}/{len(img_list)} has been pre-multiplied!",file=f,flush=True)
 
 
             if os.path.exists(tube_path):
@@ -1050,6 +1057,8 @@ def main():
                 pass
 
             else:
+            
+                print("Cutting tubes into particles..")
 
                 Extract.extract_particles(tube_path,box_size,step,particle_path,invert=True)
 
@@ -1157,6 +1166,10 @@ def main():
         Diameter_classification.reclassication(diameter_file,save_path,n_class)
     
     elif dic["command"]=="Average_power_spectra":
+    
+        print(dic)
+        
+        print("You could check run.out in the corresponding folder to obtain the log results") 
 
         log_name=str(dic['Log File name'])
   
@@ -1205,6 +1218,8 @@ def main():
     
 
     elif dic["command"]=="Sorting_coordinates":
+    
+        print(dic)
 
         log_name=str(dic['Log File name'])
   
