@@ -13,7 +13,7 @@ Ubuntu/Centos/Rocky/Windows:
 ```
 mamba env create -f AI-HEAD.yaml
 
-mamba activate AI_HEAD_IHRSR
+mamba activate AI_HEAD
 
 pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
 
@@ -85,6 +85,7 @@ External_programs:
 SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
 
 IHRSR program could be got at /external
+
 
 
 
