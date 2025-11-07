@@ -31,18 +31,20 @@ def readimg(path,option):
             if option == "Yes":
                 img=mrc.data
                 f=np.fft.fft2(img)
+                f[0,0]=0
                 fshift = np.fft.fftshift(f)
-                magnitude_spectrum = 20 * np.log1p(np.abs(fshift))
+                magnitude_spectrum = 200 * np.log1p(np.abs(fshift))
             else:
-                magnitude_spectrum=20 * np.log1p(mrc.data)
+                magnitude_spectrum=200 * np.log1p(mrc.data)
     except:
         img = cv2.imread(path, 0)
         if option == "Yes":
             f = np.fft.fft2(img)
+            f[0,0]=0
             fshift = np.fft.fftshift(f)
-            magnitude_spectrum = 20 * np.log1p(np.abs(fshift))
+            magnitude_spectrum = 200 * np.log1p(np.abs(fshift))
         else:
-            magnitude_spectrum=20*np.log1p(img)
+            magnitude_spectrum=200*np.log1p(img)
     return magnitude_spectrum
 def get_center(path):
     try:
