@@ -91,9 +91,10 @@ IHRSR program could be got at /external
 
 More details could be found at:
 
-Shaikh, T., Gao, H., Baxter, W. et al. SPIDER image processing for single-particle reconstruction of biological macromolecules from electron micrographs. Nat Protoc 3, 1941–1974 (2008)
+**Shaikh, T., Gao, H., Baxter, W. et al. SPIDER image processing for single-particle reconstruction of biological macromolecules from electron micrographs. Nat Protoc 3, 1941–1974 (2008)**
 
-Egelman, E. H. (2007). "The iterative helical real space reconstruction method: surmounting the problems  posed by real polymers." J Struct Biol 157 (1): 83-94
+**Egelman, E. H. (2007). "The iterative helical real space reconstruction method: surmounting the problems  posed by real polymers." J Struct Biol 157 (1): 83-94**
+
 
 
 
