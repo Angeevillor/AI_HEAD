@@ -1,4 +1,4 @@
-name: AI_HEAD_IHRSR
+name: AI_HEAD
 channels:
   - conda-forge
 dependencies:
