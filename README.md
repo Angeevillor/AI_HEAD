@@ -34,6 +34,8 @@ cd (where you install AI-HEAD)
 chmod +x *.py
 
 python create_env_file.py
+
+chmod +x (where you install AI-HEAD)/external/IHRSR_v1.5/*
 ```
 **Then you will get a file called "AI_HEAD_ENV.sh",and a file called "IHRSR_ENV.sh"**
 
@@ -85,6 +87,7 @@ External_programs:
 SPIDER program could be available at https://spider-em.github.io/SPIDER/docs/spi-download.html
 
 IHRSR program could be got at /external
+
 
 
 
