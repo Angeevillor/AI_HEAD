@@ -95,8 +95,13 @@ More details could be found at:
 
 **Egelman, E. H. (2007). "The iterative helical real space reconstruction method: surmounting the problems  posed by real polymers." J Struct Biol 157 (1): 83-94**
 
+Our paper:
+---
+More details about our programs could be found at:
 
+https://doi.org/10.1101/2025.11.17.688965
 
+**If AI-HEAD is useful for your work, please cite our article.**
 
 
 
