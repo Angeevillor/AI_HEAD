@@ -31,20 +31,18 @@ def readimg(path,option):
             if option == "Yes":
                 img=mrc.data
                 f=np.fft.fft2(img)
-                f[0,0]=0
                 fshift = np.fft.fftshift(f)
-                magnitude_spectrum = 200 * np.log1p(np.abs(fshift))
+                magnitude_spectrum = 20 * np.log1p(np.abs(fshift))
             else:
-                magnitude_spectrum=200 * np.log1p(mrc.data)
+                magnitude_spectrum=20 * np.log1p(mrc.data)
     except:
         img = cv2.imread(path, 0)
         if option == "Yes":
             f = np.fft.fft2(img)
-            f[0,0]=0
             fshift = np.fft.fftshift(f)
-            magnitude_spectrum = 200 * np.log1p(np.abs(fshift))
+            magnitude_spectrum = 20 * np.log1p(np.abs(fshift))
         else:
-            magnitude_spectrum=200*np.log1p(img)
+            magnitude_spectrum=20*np.log1p(img)
     return magnitude_spectrum
 def get_center(path):
     try:
@@ -188,35 +186,39 @@ def run(img,center_x,center_y,magnitude_spectrum,nums,r,pixel_num,pixel_size,fil
     def on_key(event):
         if event.key == ' ':
             x_min, x_max = ax.get_xlim()
-            y_min, y_max = ax.get_ylim()
+            y_max, y_min = ax.get_ylim()
             x_min = int(np.around(x_min))
             x_max = int(np.ceil(x_max))
             y_min = int(np.around(y_min))
             y_max = int(np.ceil(y_max))
-            img_data = (magnitude_spectrum - magnitude_spectrum.mean()) * s_contrast.val + magnitude_spectrum.mean()+s_brightness.val
-            # if img_data.dtype == np.float32 or img_data.dtype == np.float64:
-            #     if img_data.max()<255:
-            #         img_data=(img_data*255).astype(np.float64)
-            #     else:
-            #         pass
-            data=img_data[y_max:y_min, x_min:x_max]
+            # img_data = (magnitude_spectrum - magnitude_spectrum.mean()) * s_contrast.val + magnitude_spectrum.mean()+s_brightness.val
+
+            # data=img_data[y_max:y_min, x_min:x_max]
+            # data_min=np.min(data)
+            # data_max=np.max(data)
+            # norm_data=(data-data_min)/(data_max-data_min)
+            # save_img_data=norm_data*255
             
-            data_min=np.min(data)
-            data_max=np.max(data)
-            
-            norm_data=(data-data_min)/(data_max-data_min)
-            
-            save_img_data=norm_data*255
-            
-            image = Image.fromarray(save_img_data)
-            image = image.convert('RGB')
-            image.save("./Basic_vector_coordinate/diffraction_pattern.png")
+            # image = Image.fromarray(save_img_data)
+            # image = image.convert('RGB')
+            # image.save("./Basic_vector_coordinate/diffraction_pattern.png")
+
+            event=ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+
+            plt.axis("off")
+            plt.savefig("./Basic_vector_coordinate/diffraction_pattern.png",bbox_inches=event,pad_inches=0)
+
+            img=cv2.imread("./Basic_vector_coordinate/diffraction_pattern.png",0)
+            img_resize=cv2.resize(img,(512,512))
+            cv2.imwrite("./Basic_vector_coordinate/diffraction_pattern.png",img_resize)
+
             with open('./Basic_vector_coordinate/values.txt', 'a') as f:
+                # 打印提示信息
                 print('Image and values saved.')
                 print('Zoom:', s_zoom.val,file=f,flush=True)
                 print('Contrast:', s_contrast.val,file=f,flush=True)
                 print('Brightness:', s_brightness.val,file=f,flush=True)
-                print("region:","{0}, {1}, {2}, {3}".format(y_max,y_min,x_min,x_max),file=f,flush=True)
+                print("region:","{0}, {1}, {2}, {3}".format(y_min,y_max,x_min,x_max),file=f,flush=True)
             f.close()
     plt.connect('key_press_event', on_key)
 
