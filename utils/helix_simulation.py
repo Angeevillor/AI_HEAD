@@ -117,16 +117,22 @@ def run(img,magnitude_spectrum):
             x_max = int(np.ceil(x_max))
             y_min = int(np.around(y_min))
             y_max = int(np.ceil(y_max))
-            img_data = (magnitude_spectrum - magnitude_spectrum.mean()) * s_contrast.val + magnitude_spectrum.mean()+s_brightness.val
 
-            if img_data.dtype == np.float32 or img_data.dtype == np.float64:
-                if img_data.max()<255:
-                    img_data=(img_data*255).astype(np.float64)
-                else:
-                    pass
-            image = Image.fromarray(img_data[y_max:y_min, x_min:x_max])
-            image = image.convert('RGB')
-            image.save("./Diffraction_simulation/test_sim.png")
+            event=ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+
+            plt.axis("off")
+            plt.savefig("./Diffraction_simulation/test_sim.png",bbox_inches=event,pad_inches=0)
+
+
+            x_size=x_max-x_min
+            y_size=y_min-y_max
+
+            img=cv2.imread("./Diffraction_simulation/test_sim.png",0)
+            img_resize=cv2.resize(img,(x_size,y_size))
+            cv2.imwrite("./Diffraction_simulation/test_sim.png",img_resize)
+
+
+
             with open('./Diffraction_simulation/values.txt', 'a') as f:
                 print('Image and values saved.')
                 print('Zoom:', s_zoom.val,file=f,flush=True)
@@ -136,17 +142,24 @@ def run(img,magnitude_spectrum):
             f.close()
 
     plt.connect('key_press_event', on_key)
-
     plt.show()
+
 def batch(img,magnitude_spectrum,batch_zoom,batch_contrast,batch_brightness,region,filename):
     fig, ax = plt.subplots()
     fig.canvas.manager.set_window_title("Diffraction pattern")
-    plt.title('Diffraction pattern'), plt.xticks([]), plt.yticks([])
     plt.subplots_adjust(bottom=0.25)
+    
+    plt.axis("off")
+
     contrast = batch_contrast
     brightness = batch_brightness
+
+    img_data = (magnitude_spectrum - magnitude_spectrum.mean()) * contrast + magnitude_spectrum.mean() + brightness
+    im = ax.imshow(magnitude_spectrum, cmap="gray")
+    im.set_data(img_data)
+
     zoom=batch_zoom
-    xcenter, ycenter = ax.get_xlim(), ax.get_ylim()  #
+    xcenter, ycenter = ax.get_xlim(), ax.get_ylim() 
     xcenter = (xcenter[0] + xcenter[1]) / 2
     ycenter = (ycenter[0] + ycenter[1]) / 2
     xwidth = img.shape[1] / zoom
@@ -155,24 +168,29 @@ def batch(img,magnitude_spectrum,batch_zoom,batch_contrast,batch_brightness,regi
     xmax = min(img.shape[1], xcenter + xwidth / 2)
     ymin = max(0, ycenter - yheight / 2)
     ymax = min(img.shape[0], ycenter + yheight / 2)
-    ax.set_xlim(xmin, xmax)
-    ax.set_ylim(ymax, ymin)
-    img_data = (magnitude_spectrum - magnitude_spectrum.mean()) * contrast + magnitude_spectrum.mean() + brightness
-    im = ax.imshow(magnitude_spectrum, cmap="gray")
-    im.set_data(img_data)
-    if img_data.dtype == np.float32 or img_data.dtype == np.float64:
-        if img_data.max() < 255:
-            img_data = (img_data * 255).astype(np.float64)
-        else:
-            pass
-    image = Image.fromarray(img_data[region[0]:region[1],region[2]:region[3]])
-    # image = Image.fromarray(img_data[y_max:y_min, x_min:x_max])
-    image = image.convert('RGB')
-    try:
-        image.save("./Diffraction_simulation/" + filename)
-    except:
-        name=filename.split(".")[0]+".png"
-        image.save("./Diffraction_simulation/" + name)
 
+    ax.set_xlim(region[0], region[1])
+    ax.set_ylim(region[2], region[3])
 
+    # if img_data.dtype == np.float32 or img_data.dtype == np.float64:
+    #     if img_data.max() < 255:
+    #         img_data = (img_data * 255).astype(np.float64)
+    #     else:
+    #         pass
+    # image = Image.fromarray(img_data[region[0]:region[1],region[2]:region[3]])
+    # # image = Image.fromarray(img_data[y_max:y_min, x_min:x_max])
+    # image = image.convert('RGB')
+    # try:
+    #     image.save("./Diffraction_simulation/" + filename)
+    # except:
+    #     name=filename.split(".")[0]+".png"
+    #     image.save("./Diffraction_simulation/" + name)
+
+    x_size=region[1]-region[0]
+    y_size=region[3]-region[2]
+
+    plt.savefig("./Diffraction_simulation/" + filename,bbox_inches="tight",pad_inches=0)
+    img=cv2.imread("./Diffraction_simulation/" + filename,0)
+    img_resize=cv2.resize(img,(x_size,y_size))
+    cv2.imwrite("./Diffraction_simulation/" + filename,img_resize)
     plt.close()

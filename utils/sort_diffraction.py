@@ -1,5 +1,6 @@
 from PIL import Image,ImageDraw
 import re
+import cv2
 def extract_number(filename):
     match = re.search(r"\d+", filename)
     if match:
@@ -9,7 +10,12 @@ def extract_number(filename):
 
 def converge(img1,img2):
     w1,h1=img1.size
+    img2=cv2.resize(img2,(h1,w1))
+
+    img2=Image.fromarray(img2)
+
     w2,h2=img2.size
+
     W=(w1+w2)/2
     H=max(h1,h2)
     new_img=Image.new("RGB",(int(W),int(H)))
