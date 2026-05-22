@@ -4,10 +4,10 @@ def generate_ihrsr_script(particle_num,angular_step,Cnsym,iter,box_size,search_r
     n=int(re.findall("\d",Cnsym)[0])
     if n==1:
         has_sym=0
-        ref_projection_num=360/angular_step
+        ref_projection_num=int(360/angular_step)
     else: 
         has_sym=1
-        ref_projection_num=360/(angular_step*n)
+        ref_projection_num=int(360/(angular_step*n))
 
 
     particle_stack=particle_stack.split(".spi")[0]
