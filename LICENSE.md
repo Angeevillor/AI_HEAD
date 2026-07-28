@@ -65,7 +65,7 @@ Copyright (c) 2025 [Taining Pei, Mingyang Yu, Song Li, Danyang Zhang, Fei Sun, Y
 如需将本作品用于商业用途、产品集成、或超出上述"允许的使用范围"的任何用途，
 请事先联系原作者取得书面商业授权协议：
 
-  联系邮箱：[feisun@ibp.ac.cn / yanzhang@ibp.ac.cn]
+  联系邮箱：[peitaining22@mails.ucas.ac.cn]
 
 未经书面授权的使用，将被视为侵犯著作权，原作者保留追究法律责任
 （包括但不限于要求停止侵害、消除影响、赔偿损失）的权利。
@@ -109,7 +109,7 @@ Any use outside these terms constitutes copyright infringement. The
 authors reserve the right to pursue legal remedies, including demanding
 immediate cessation of use, removal of infringing features, and damages.
 
-For commercial licensing inquiries, contact: [feisun@ibp.ac.cn / yanzhang@ibp.ac.cn]
+For commercial licensing inquiries, contact: [peitaining22@mails.ucas.ac.cn]
 
 THIS WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
 
