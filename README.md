@@ -1,3 +1,9 @@
+Warning:
+
+**本代码非开源。严禁未经书面授权，整合进任何第三方软件，严禁商业使用。**
+
+**This code is not open source. It is strictly prohibited to integrate it into any third-party software without written authorization, and commercial use is also strictly forbidden.**
+
 Interface:
 ===
 **HelicalSeeker**: the automated approach to determine helical parameters and analyze dynamic helical assemblies 
